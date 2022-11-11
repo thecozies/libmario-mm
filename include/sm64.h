@@ -3,6 +3,7 @@
 
 // Global header for Super Mario 64
 
+#ifndef I_AM_OOT
 #include "types.h"
 #include "config.h"
 #include "object_fields.h"
@@ -14,6 +15,7 @@
 #include "surface_terrains.h"
 #include "macros.h"
 #include "segments.h"
+#endif
 
 // Crash handler enhancement
 #ifdef CRASH_SCREEN_INCLUDED

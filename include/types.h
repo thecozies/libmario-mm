@@ -377,8 +377,8 @@ struct Normal {
 };
 
 struct Surface {
-    /*0x00*/ TerrainData type;
-    /*0x02*/ TerrainData force;
+    /*0x00*/ s16 type;
+    /*0x02*/ s16 force;
     /*0x04*/ s8 flags;
     /*0x05*/ RoomData room;
     /*0x06*/ s16 lowerY;

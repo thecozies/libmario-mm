@@ -1567,42 +1567,42 @@ u64 sCapFlickerFrames = 0b100010001000100010001001001001001001001001001010101010
  * Updates the cap flags mainly based on the cap timer.
  */
 u32 update_and_return_cap_flags(struct MarioState *m) {
-    u32 flags = m->flags;
-    u32 action;
+    // u32 flags = m->flags;
+    // u32 action;
 
-    if (m->capTimer > 0) {
-        action = m->action;
+    // if (m->capTimer > 0) {
+    //     action = m->action;
 
-        if ((m->capTimer <= 60)
-            || ((action != ACT_READING_AUTOMATIC_DIALOG) && (action != ACT_READING_NPC_DIALOG)
-                && (action != ACT_READING_SIGN) && (action != ACT_IN_CANNON))) {
-            m->capTimer -= 1;
-        }
+    //     if ((m->capTimer <= 60)
+    //         || ((action != ACT_READING_AUTOMATIC_DIALOG) && (action != ACT_READING_NPC_DIALOG)
+    //             && (action != ACT_READING_SIGN) && (action != ACT_IN_CANNON))) {
+    //         m->capTimer -= 1;
+    //     }
 
-        if (m->capTimer == 0) {
-            stop_cap_music();
+    //     if (m->capTimer == 0) {
+    //         stop_cap_music();
 
-            m->flags &= ~MARIO_SPECIAL_CAPS;
-            if (!(m->flags & MARIO_CAPS)) {
-                m->flags &= ~MARIO_CAP_ON_HEAD;
-            }
-        }
+    //         m->flags &= ~MARIO_SPECIAL_CAPS;
+    //         if (!(m->flags & MARIO_CAPS)) {
+    //             m->flags &= ~MARIO_CAP_ON_HEAD;
+    //         }
+    //     }
 
-        if (m->capTimer == 60) {
-            fadeout_cap_music();
-        }
+    //     if (m->capTimer == 60) {
+    //         fadeout_cap_music();
+    //     }
 
-        // This code flickers the cap through a long binary string, increasing in how
-        // common it flickers near the end.
-        if ((m->capTimer < 64) && ((1ULL << m->capTimer) & sCapFlickerFrames)) {
-            flags &= ~MARIO_SPECIAL_CAPS;
-            if (!(flags & MARIO_CAPS)) {
-                flags &= ~MARIO_CAP_ON_HEAD;
-            }
-        }
-    }
+    //     // This code flickers the cap through a long binary string, increasing in how
+    //     // common it flickers near the end.
+    //     if ((m->capTimer < 64) && ((1ULL << m->capTimer) & sCapFlickerFrames)) {
+    //         flags &= ~MARIO_SPECIAL_CAPS;
+    //         if (!(flags & MARIO_CAPS)) {
+    //             flags &= ~MARIO_CAP_ON_HEAD;
+    //         }
+    //     }
+    // }
 
-    return flags;
+    return m->flags;
 }
 
 /**

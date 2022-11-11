@@ -1,11 +1,17 @@
 #include <PR/ultratypes.h>
 #include <types.h>
 #include <sm64.h>
+#include "funcs.h"
+#include <stdio.h>
+#include <string.h>
+#include "math.h"
 #include "area.h"
 #include "level_update.h"
 #include "surface_collision.h"
 #include "mario.h"
 #include "object_list_processor.h"
+
+#include "anims.c"
 
 void spawn_wind_particles(s16 pitch, s16 yaw) {}
 s32 save_file_get_flags() { return 0; }
@@ -222,51 +228,51 @@ s16 gNumRoomedObjectsNotInMarioRoom = 0;
 
 void (*gGoddardVblankCallback)(void) = NULL;
 
-s32 atan2s(f32 y, f32 x);
+s16 Math_Atan2S(f32 y, f32 x);
 
 s16 mario_obj_angle_to_object(struct MarioState *m, struct Object *o) {
     f32 dx = o->oPosX - m->pos[0];
     f32 dz = o->oPosZ - m->pos[2];
 
-    return atan2s(dz, dx);
+    return Math_Atan2S(dz, dx);
 }
 
-void guMtxF2L(float mf[4][4], Mtx *m) {
-    int r, c;
-    s32 tmp1;
-    s32 tmp2;
-    s32 *m1 = &m->m[0][0];
-    s32 *m2 = &m->m[2][0];
-    for (r = 0; r < 4; r++) {
-        for (c = 0; c < 2; c++) {
-            tmp1 = mf[r][2 * c] * 65536.0f;
-            tmp2 = mf[r][2 * c + 1] * 65536.0f;
-            *m1++ = (tmp1 & 0xffff0000) | ((tmp2 >> 0x10) & 0xffff);
-            *m2++ = ((tmp1 << 0x10) & 0xffff0000) | (tmp2 & 0xffff);
-        }
-    }
-}
+// void guMtxF2L(float mf[4][4], Mtx *m) {
+//     int r, c;
+//     s32 tmp1;
+//     s32 tmp2;
+//     s32 *m1 = &m->m[0][0];
+//     s32 *m2 = &m->m[2][0];
+//     for (r = 0; r < 4; r++) {
+//         for (c = 0; c < 2; c++) {
+//             tmp1 = mf[r][2 * c] * 65536.0f;
+//             tmp2 = mf[r][2 * c + 1] * 65536.0f;
+//             *m1++ = (tmp1 & 0xffff0000) | ((tmp2 >> 0x10) & 0xffff);
+//             *m2++ = ((tmp1 << 0x10) & 0xffff0000) | (tmp2 & 0xffff);
+//         }
+//     }
+// }
 
-void guMtxL2F(float mf[4][4], Mtx *m) {
-    int r, c;
-    u32 tmp1;
-    u32 tmp2;
-    u32 *m1;
-    u32 *m2;
-    s32 stmp1, stmp2;
-    m1 = (u32 *) &m->m[0][0];
-    m2 = (u32 *) &m->m[2][0];
-    for (r = 0; r < 4; r++) {
-        for (c = 0; c < 2; c++) {
-            tmp1 = (*m1 & 0xffff0000) | ((*m2 >> 0x10) & 0xffff);
-            tmp2 = ((*m1++ << 0x10) & 0xffff0000) | (*m2++ & 0xffff);
-            stmp1 = *(s32 *) &tmp1;
-            stmp2 = *(s32 *) &tmp2;
-            mf[r][c * 2 + 0] = stmp1 / 65536.0f;
-            mf[r][c * 2 + 1] = stmp2 / 65536.0f;
-        }
-    }
-}
+// void guMtxL2F(float mf[4][4], Mtx *m) {
+//     int r, c;
+//     u32 tmp1;
+//     u32 tmp2;
+//     u32 *m1;
+//     u32 *m2;
+//     s32 stmp1, stmp2;
+//     m1 = (u32 *) &m->m[0][0];
+//     m2 = (u32 *) &m->m[2][0];
+//     for (r = 0; r < 4; r++) {
+//         for (c = 0; c < 2; c++) {
+//             tmp1 = (*m1 & 0xffff0000) | ((*m2 >> 0x10) & 0xffff);
+//             tmp2 = ((*m1++ << 0x10) & 0xffff0000) | (*m2++ & 0xffff);
+//             stmp1 = *(s32 *) &tmp1;
+//             stmp2 = *(s32 *) &tmp2;
+//             mf[r][c * 2 + 0] = stmp1 / 65536.0f;
+//             mf[r][c * 2 + 1] = stmp2 / 65536.0f;
+//         }
+//     }
+// }
 
 /**
  * Update the animation frame of an object. The animation flags determine
@@ -479,9 +485,8 @@ void copy_mario_state_to_object(void) {
 extern const struct Animation *gMarioAnims[];
 extern u32 gMarioNumAnims;
 
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
+
+// #include <time.h>
 
 s32 load_patchable_table(struct DmaHandlerList *list, s32 index) {
     s32 ret = FALSE;
@@ -503,13 +508,13 @@ struct Animation gTargetAnim;
 
 void delay(int milliseconds)
 {
-    long pause;
-    clock_t now,then;
+    // long pause;
+    // clock_t now,then;
 
-    pause = milliseconds*(CLOCKS_PER_SEC/1000);
-    now = then = clock();
-    while( (now-then) < pause )
-        now = clock();
+    // pause = milliseconds*(CLOCKS_PER_SEC/1000);
+    // now = then = clock();
+    // while( (now-then) < pause )
+    //     now = clock();
 }
 
 u8 gCurAnimType;
@@ -567,11 +572,6 @@ struct Camera areaCamera;
 #define ADDCALL
 #endif
 
-typedef f32 FindFloorHandler_t(f32 x, f32 y, f32 z, struct Surface *floor, s32 *foundFloor);
-typedef f32 FindCeilHandler_t(f32 x, f32 y, f32 z, struct Surface *ceil, s32 *foundCeil);
-typedef s32 FindWallHandler_t(f32 x, f32 y, f32 z, f32 offsetY, f32 radius, struct Surface walls[4], Vec3f posOut);
-typedef f32 FindWaterLevelHandler_t(f32 x, f32 z);
-
 FindFloorHandler_t *gFloorHandler = NULL;
 FindCeilHandler_t *gCeilHandler = NULL;
 FindWallHandler_t *gWallHandler = NULL;
@@ -621,13 +621,14 @@ s32 find_wall_collisions(struct WallCollisionData *colData) {
         struct Surface *curSurface = &surfacePool[surfacesUsed];
         Vec3f posOut;
         numWalls = gWallHandler(colData->x, colData->y, colData->z, colData->offsetY, colData->radius, curSurface, posOut);
-        colData->walls[0] = &curSurface[0];
-        colData->walls[1] = &curSurface[1];
-        colData->walls[2] = &curSurface[2];
-        colData->walls[3] = &curSurface[3];
-        colData->x = posOut[0];
-        colData->y = posOut[1];
-        colData->z = posOut[2];
+        if (numWalls > 0) {
+            for (int i = 0; i < numWalls; i++) {
+                colData->walls[i] = &curSurface[i];
+            }
+            colData->x = posOut[0];
+            colData->y = posOut[1];
+            colData->z = posOut[2];
+        }
         surfacesUsed += (numWalls > 4 ? 4 : numWalls);
     }
 
@@ -647,7 +648,14 @@ struct Object *mario_get_collided_object(struct MarioState *m, u32 interactType)
     return NULL;
 }
 
+
+
 #include "math_util.h"
+#undef sins
+#undef coss
+
+s16 sins(u16);
+s16 coss(u16);
 
 void check_kick_or_punch_wall(struct MarioState *m) {
     if (m->flags & (MARIO_PUNCHING | MARIO_KICKING | MARIO_TRIPPING)) {
@@ -702,12 +710,13 @@ void resolve_and_return_wall_collisions(Vec3f pos, f32 offset, f32 radius, struc
     pos[2] = collisionData->z;
 }
 
-EXPORT void ADDCALL init(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler) {
+EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler) {
     gFloorHandler = floorHandler;
     gCeilHandler = ceilHandler;
     gWallHandler = wallHandler;
     gWaterLevelHandler = waterHandler;
-    memset(gMarioState, 0, sizeof(struct MarioState));
+    // memset(gMarioState, 0, sizeof(struct MarioState));
+    bzero(gMarioState, sizeof(struct MarioState));
     gMarioState->pos[0] = 0.0f;
     gMarioState->pos[1] = 100.0f;
     gMarioState->pos[2] = 0.0f;
@@ -733,19 +742,58 @@ EXPORT void ADDCALL init(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ce
 
 #include "graph_node.h"
 
-Gfx *geo_mario_hand_foot_scaler(s32 callContext, struct GraphNode *node, UNUSED Mat4 *c);
+void setMarioRelativeCamYaw(s16 yaw) {
+    gMarioState->area->camera->yaw = yaw;
+}
 
-EXPORT void ADDCALL step(s32 buttons, f32 stickX, f32 stickY) {
+Gfx *geo_mario_hand_foot_scaler(s32 callContext, struct GraphNode *node, UNUSED Mat4 *c);
+void adjust_analog_stick(struct Controller *controller) {
+    // Reset the controller's x and y floats.
+    controller->stickX = 0;
+    controller->stickY = 0;
+
+    // Modulate the rawStickX and rawStickY to be the new f32 values by adding/subtracting 6.
+    if (controller->rawStickX <= -8) {
+        controller->stickX = controller->rawStickX + 6;
+    }
+
+    if (controller->rawStickX >= 8) {
+        controller->stickX = controller->rawStickX - 6;
+    }
+
+    if (controller->rawStickY <= -8) {
+        controller->stickY = controller->rawStickY + 6;
+    }
+
+    if (controller->rawStickY >= 8) {
+        controller->stickY = controller->rawStickY - 6;
+    }
+
+    // Calculate f32 magnitude from the center by vector length.
+    controller->stickMag =
+        sqrtf(controller->stickX * controller->stickX + controller->stickY * controller->stickY);
+
+    // Magnitude cannot exceed 64.0f: if it does, modify the values
+    // appropriately to flatten the values down to the allowed maximum value.
+    if (controller->stickMag > 64) {
+        controller->stickX *= 64 / controller->stickMag;
+        controller->stickY *= 64 / controller->stickMag;
+        controller->stickMag = 64;
+    }
+}
+
+EXPORT void ADDCALL step_libmario(s32 buttons, OSContPad *controllerData) {
     struct GraphNodeGenerated handFootScalerNode;
     struct GraphNodeScale scaleNode;
     handFootScalerNode.fnNode.node.next = (struct GraphNode*)&scaleNode;
 
-    gControllers[0].buttonPressed = buttons & ~gControllers[0].buttonDown;
-    gControllers[0].buttonDown = buttons;
-
-    gControllers[0].stickX = stickX * 64.0f;
-    gControllers[0].stickY = stickY * 64.0f;
-    gControllers[0].stickMag = 64.0f * sqrtf(stickX * stickX + stickY * stickY);
+    gControllers[0].rawStickX = controllerData->stick_x;
+    gControllers[0].rawStickY = controllerData->stick_y;
+    gControllers[0].buttonPressed = controllerData->button
+                                & (controllerData->button ^ gControllers[0].buttonDown);
+    // 0.5x A presses are a good meme
+    gControllers[0].buttonDown = controllerData->button;
+    adjust_analog_stick(&gControllers[0]);
 
     surfacesUsed = 0;
 
@@ -768,41 +816,57 @@ EXPORT void ADDCALL step(s32 buttons, f32 stickX, f32 stickY) {
     gAreaUpdateCounter++;
 }
 
-EXPORT void ADDCALL getMarioPosition(Vec3f pos) {
+void getMarioPosition(f32 pos[3]) {
     pos[0] = gMarioObject->header.gfx.pos[0];
     pos[1] = gMarioObject->header.gfx.pos[1];
     pos[2] = gMarioObject->header.gfx.pos[2];
 }
 
-EXPORT void ADDCALL setMarioPosition(Vec3f pos) {
+u32 getMarioAction(void) {
+    return gMarioState->action;
+}
+
+void setMarioPosition(f32 pos[3]) {
     gMarioState->pos[0] = pos[0];
     gMarioState->pos[1] = pos[1];
     gMarioState->pos[2] = pos[2];
 }
 
-EXPORT void ADDCALL getMarioVelocity(Vec3f vel) {
+void getMarioVelocity(f32 vel[3]) {
     vel[0] = gMarioState->vel[0];
     vel[1] = gMarioState->vel[1];
     vel[2] = gMarioState->vel[2];
 }
 
-EXPORT void ADDCALL setMarioVelocity(Vec3f pos) {
+void setMarioVelocity(f32 pos[3]) {
     gMarioState->vel[0] = pos[0];
     gMarioState->vel[1] = pos[1];
     gMarioState->vel[2] = pos[2];
 }
 
-EXPORT void ADDCALL getMarioRotation(Vec3f rot) {
-    rot[0] = gMarioObject->header.gfx.angle[0] * (180.0f / 32768.0f);
-    rot[1] = gMarioObject->header.gfx.angle[1] * (180.0f / 32768.0f);
-    rot[2] = gMarioObject->header.gfx.angle[2] * (180.0f / 32768.0f);
+void getMarioRotation(s16 rot[3]) {
+    rot[0] = gMarioObject->header.gfx.angle[0];
+    rot[1] = gMarioObject->header.gfx.angle[1];
+    rot[2] = gMarioObject->header.gfx.angle[2];
 }
 
-EXPORT void ADDCALL setMarioRotation(Vec3f rot) {
-    gMarioState->faceAngle[0] = (s16)(rot[0] * (32768.0f / 180.0f));
-    gMarioState->faceAngle[1] = (s16)(rot[1] * (32768.0f / 180.0f));
-    gMarioState->faceAngle[2] = (s16)(rot[2] * (32768.0f / 180.0f));
+// EXPORT void ADDCALL getMarioRotation(Vec3f rot) {
+//     rot[0] = gMarioObject->header.gfx.angle[0] * (180.0f / 32768.0f);
+//     rot[1] = gMarioObject->header.gfx.angle[1] * (180.0f / 32768.0f);
+//     rot[2] = gMarioObject->header.gfx.angle[2] * (180.0f / 32768.0f);
+// }
+
+void setMarioRotation(s16 rot[3]) {
+    gMarioState->faceAngle[0] = rot[0];
+    gMarioState->faceAngle[1] = rot[1];
+    gMarioState->faceAngle[2] = rot[2];
 }
+
+// EXPORT void ADDCALL setMarioRotation(Vec3f rot) {
+//     gMarioState->faceAngle[0] = (s16)(rot[0] * (32768.0f / 180.0f));
+//     gMarioState->faceAngle[1] = (s16)(rot[1] * (32768.0f / 180.0f));
+//     gMarioState->faceAngle[2] = (s16)(rot[2] * (32768.0f / 180.0f));
+// }
 
 EXPORT void ADDCALL getMarioScale(Vec3f scale) {
     scale[0] = gMarioObject->header.gfx.scale[0];
