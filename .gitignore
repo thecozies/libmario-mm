@@ -45,6 +45,7 @@
 # General project-specific ignores
 doxygen/doxygen/*
 build/*
+libmario/build/*
 *.dump
 *.mio0
 *.z64
