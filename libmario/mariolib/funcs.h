@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef I_AM_OOT
-    #include "ultra64/types.h"
+    #include "ultra64.h"
 
     struct SM64Normal {
         /*0x00*/ f32 x;
@@ -123,6 +123,7 @@
         s16 ceilYaw;
         s16 wallYaw;
     };
+    void getMarioAnimData(struct MarioAnimData *out);
 #else
     #include "types.h"
     #define SurfaceSM64 Surface
@@ -148,3 +149,16 @@ u32 getMarioAction(void);
 void setMarioRelativeCamYaw(s16 yaw);
 void getMarioVelocity(f32 vel[3]);
 void setMarioVelocity(f32 pos[3]);
+
+struct MarioAnimData {
+    f32 rootTranslation[3];
+    s16 boneRotations[20][3];
+};
+
+
+void getMarioPosition(f32 pos[3]);
+void setMarioPosition(f32 pos[3]);
+void getMarioVelocity(f32 vel[3]);
+void setMarioVelocity(f32 pos[3]);
+void getMarioRotation(s16 rot[3]);
+void setMarioRotation(s16 rot[3]);
