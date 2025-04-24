@@ -516,5 +516,7 @@ extern float powf(float base, float exp);
 // invincTimer/squishTimer i think i am doubling but need to verify
 // bbh entry action
 // teleport fade actions
+// update_sliding is ROUGH. see `if (oldSpeed > 0.0f && newSpeed > 0.0f) {`
+
 
 #endif // TYPES_H
