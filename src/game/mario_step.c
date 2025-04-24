@@ -350,7 +350,7 @@ s32 perform_ground_step(struct MarioState *m) {
 
     set_mario_wall(m, NULL);
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < SCALE_PFs(4); i++) {
         intendedPos[0] = m->pos[0] + m->floor->normal.y * (m->vel[0] / numSteps);
         intendedPos[2] = m->pos[2] + m->floor->normal.y * (m->vel[2] / numSteps);
         intendedPos[1] = m->pos[1];
@@ -581,7 +581,7 @@ void apply_twirl_gravity(struct MarioState *m) {
 #else
     f32 terminalVelocity = -75.0f * heaviness;
 
-    m->vel[1] -= 4.0f * heaviness;
+    m->vel[1] -= SCALE_PF(4.0f) * heaviness;
 #endif
     if (m->vel[1] < terminalVelocity) {
         m->vel[1] = terminalVelocity;
@@ -608,44 +608,47 @@ void apply_gravity(struct MarioState *m) {
     if (m->action == ACT_TWIRLING && m->vel[1] < 0.0f) {
         apply_twirl_gravity(m);
     } else if (m->action == ACT_SHOT_FROM_CANNON) {
-        m->vel[1] -= 1.0f;
+        m->vel[1] -= SCALE_PF(1.0f);
         if (m->vel[1] < -75.0f) {
             m->vel[1] = -75.0f;
         }
     } else if (m->action == ACT_LONG_JUMP || m->action == ACT_SLIDE_KICK
                || m->action == ACT_BBH_ENTER_SPIN) {
-        m->vel[1] -= 2.0f;
+        m->vel[1] -= SCALE_PF(2.0f);
         if (m->vel[1] < -75.0f) {
             m->vel[1] = -75.0f;
         }
     } else if (m->action == ACT_LAVA_BOOST || m->action == ACT_FALL_AFTER_STAR_GRAB) {
-        m->vel[1] -= 3.2f;
+        m->vel[1] -= SCALE_PF(3.2f);
         if (m->vel[1] < -65.0f) {
             m->vel[1] = -65.0f;
         }
     } else if (m->action == ACT_GETTING_BLOWN) {
-        m->vel[1] -= m->windGravity;
+        m->vel[1] -= SCALE_PF(m->windGravity);
         if (m->vel[1] < -75.0f) {
             m->vel[1] = -75.0f;
         }
     } else if (should_strengthen_gravity_for_jump_ascent(m)) {
-        m->vel[1] /= 4.0f;
+        // m->vel[1] /= 4.0f;
+        // NTODO: verify powf
+        // m->vel[1] *= SCALE_DAMP(0.25f);
+        m->vel[1] *= 0.5f;
     } else if (m->action & ACT_FLAG_METAL_WATER) {
-        m->vel[1] -= 1.6f;
+        m->vel[1] -= SCALE_PF(1.6f);
         if (m->vel[1] < -16.0f) {
             m->vel[1] = -16.0f;
         }
     } else if ((m->flags & MARIO_WING_CAP) && m->vel[1] < 0.0f && (m->input & INPUT_A_DOWN)) {
         m->marioBodyState->wingFlutter = TRUE;
 
-        m->vel[1] -= 2.0f;
+        m->vel[1] -= SCALE_PF(2.0f);
         if (m->vel[1] < -37.5f) {
-            if ((m->vel[1] += 4.0f) > -37.5f) {
+            if ((m->vel[1] += SCALE_PF(4.0f)) > -37.5f) {
                 m->vel[1] = -37.5f;
             }
         }
     } else {
-        m->vel[1] -= 4.0f;
+        m->vel[1] -= SCALE_PF(4.0f);
         if (m->vel[1] < -75.0f) {
             m->vel[1] = -75.0f;
         }
@@ -666,7 +669,7 @@ void apply_vertical_wind(struct MarioState *m) {
             }
 
             if (m->vel[1] < maxVelY) {
-                if ((m->vel[1] += maxVelY / 8.0f) > maxVelY) {
+                if ((m->vel[1] += SCALE_PF(maxVelY / 8.0f)) > maxVelY) {
                     m->vel[1] = maxVelY;
                 }
             }
@@ -683,7 +686,7 @@ s32 perform_air_step(struct MarioState *m, u32 stepArg) {
 
     set_mario_wall(m, NULL);
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < SCALE_PFs(4); i++) {
         intendedPos[0] = m->pos[0] + m->vel[0] / numSteps;
         intendedPos[1] = m->pos[1] + m->vel[1] / numSteps;
         intendedPos[2] = m->pos[2] + m->vel[2] / numSteps;

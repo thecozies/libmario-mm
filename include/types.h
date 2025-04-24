@@ -496,4 +496,16 @@ struct MarioState {
     // -- HackerSM64 MarioState fields end --
 };
 
+extern float powf(float base, float exp);
+
+#define FRAME_RATE 60.0f
+#define FRAME_RATE_INV (1.0f / FRAME_RATE)
+#define FRAME_RATE_INV_ORIG (1.0f / 30.0f)
+// #define FRAME_RATE_SCALE (FRAME_RATE_INV_ORIG / FRAME_RATE_INV)
+#define FRAME_RATE_SCALE (0.5f)
+#define SCALE_DAMP(base_damp) (powf((base_damp), 30.0f * FRAME_RATE_INV))
+#define SCALE_PF(v) ((v) * FRAME_RATE_SCALE)
+// #define SCALE_PFs(v) ((s32)lroundf((v) * FRAME_RATE_SCALE))
+#define SCALE_PFs(v) ((s32)lroundf((v) / 2))
+
 #endif // TYPES_H
