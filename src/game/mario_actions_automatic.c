@@ -56,7 +56,7 @@ s32 set_pole_position(struct MarioState *m, f32 offsetY) {
         marioObj->oMarioPolePos = poleTop;
     }
 
-    vec3f_copy_y_off(m->pos, &m->usedObj->oPosVec, marioObj->oMarioPolePos + offsetY);
+    vec3f_copy_y_off(m->pos, &m->usedObj->oPosVec, marioObj->oMarioPolePos + SCALE_PF(offsetY));
 
     s32 collided = f32_find_wall_collision(&m->pos[0], &m->pos[1], &m->pos[2], 60.0f, 50.0f)
                  + f32_find_wall_collision(&m->pos[0], &m->pos[1], &m->pos[2], 30.0f, 24.0f);
@@ -123,13 +123,13 @@ s32 act_holding_pole(struct MarioState *m) {
     }
 
     if (m->controller->stickY < -16.0f) {
-        m->angleVel[1] -= m->controller->stickY * 2;
+        m->angleVel[1] -= SCALE_PF(m->controller->stickY * 2);
         if (m->angleVel[1] > 0x1000) {
             m->angleVel[1] = 0x1000;
         }
 
-        m->faceAngle[1] += m->angleVel[1];
-        marioObj->oMarioPolePos -= m->angleVel[1] / 0x100;
+        m->faceAngle[1] += SCALE_PF(m->angleVel[1]);
+        marioObj->oMarioPolePos -= SCALE_PF(m->angleVel[1] / 0x100);
 
         add_tree_leaf_particles(m);
         play_climbing_sounds(m, 2);
@@ -139,7 +139,7 @@ s32 act_holding_pole(struct MarioState *m) {
         set_sound_moving_speed(SOUND_BANK_MOVING, m->angleVel[1] / 0x100 * 2);
     } else {
         m->angleVel[1] = 0;
-        m->faceAngle[1] -= m->controller->stickX * 16.0f;
+        m->faceAngle[1] -= SCALE_PF(m->controller->stickX * 16.0f);
     }
 
     if (set_pole_position(m, 0.0f) == POLE_NONE) {
@@ -169,9 +169,9 @@ s32 act_climbing_pole(struct MarioState *m) {
         return set_mario_action(m, ACT_HOLDING_POLE, 0);
     }
 
-    marioObj->oMarioPolePos += m->controller->stickY / 8.0f;
+    marioObj->oMarioPolePos += SCALE_PF(m->controller->stickY / 8.0f);
     m->angleVel[1]  = 0;
-    m->faceAngle[1] = cameraAngle - approach_s32((s16)(cameraAngle - m->faceAngle[1]), 0, 0x400, 0x400);
+    m->faceAngle[1] = cameraAngle - approach_s32((s16)(cameraAngle - m->faceAngle[1]), 0, SCALE_PFs(0x400), SCALE_PFs(0x400));
 
     if (set_pole_position(m, 0.0f) == POLE_NONE) {
         s32 animSpeed = m->controller->stickY / 4.0f * 0x10000;
@@ -199,8 +199,8 @@ s32 act_grab_pole_slow(struct MarioState *m) {
 
 s32 act_grab_pole_fast(struct MarioState *m) {
     play_sound_if_no_flag(m, SOUND_MARIO_WHOA, MARIO_MARIO_SOUND_PLAYED);
-    m->faceAngle[1] += m->angleVel[1];
-    m->angleVel[1] = m->angleVel[1] * 8 / 10;
+    m->faceAngle[1] += SCALE_PFs(m->angleVel[1]);
+    m->angleVel[1] = m->angleVel[1] * SCALE_DAMP(8.0f / 10.0f);
 
     if (set_pole_position(m, 0.0f) == POLE_NONE) {
         if (abss(m->angleVel[1]) > 0x800) {
@@ -245,7 +245,7 @@ s32 act_top_of_pole(struct MarioState *m) {
         return set_mario_action(m, ACT_TOP_OF_POLE_TRANSITION, 1);
     }
 
-    m->faceAngle[1] -= m->controller->stickX * 16.0f;
+    m->faceAngle[1] -= SCALE_PF(m->controller->stickX * 16.0f);
 
     set_mario_animation(m, MARIO_ANIM_HANDSTAND_IDLE);
     set_pole_position(m, return_mario_anim_y_translation(m));
@@ -300,7 +300,7 @@ s32 update_hang_moving(struct MarioState *m) {
     f32 maxSpeed = HANGING_SPEED;
 #endif
 
-    m->forwardVel += 1.0f;
+    m->forwardVel += SCALE_PF(1.0f);
     if (m->forwardVel > maxSpeed) {
         m->forwardVel = maxSpeed;
     }
@@ -314,13 +314,13 @@ s32 update_hang_moving(struct MarioState *m) {
         m->intendedYaw += 0x8000;
     } else if (dYaw > 0x4000) { // Only modify Mario's speed and turn radius if Mario is turning around
         // Reduce Mario's forward speed by the turn amount, so Mario won't move off sideward from the intended angle when turning around.
-        m->forwardVel *= ((coss(dYaw) + 1.0f) / 2.0f); // 1.0f is turning forwards, 0.0f is turning backwards
+        m->forwardVel *= SCALE_DAMP(((coss(dYaw) + 1.0f) / 2.0f)); // 1.0f is turning forwards, 0.0f is turning backwards
         // Increase turn speed if forwardVel is lower and intendedMag is higher
         turnRange *= (2.0f - (absf(m->forwardVel) / MAX(m->intendedMag, NEAR_ZERO))); // 1.0f front, 2.0f back
     }
-    m->faceAngle[1] = approach_angle(m->faceAngle[1], m->intendedYaw, turnRange);
+    m->faceAngle[1] = approach_angle(m->faceAngle[1], SCALE_PFs(m->intendedYaw), SCALE_PFs(turnRange));
 #else
-    m->faceAngle[1] = approach_angle(m->faceAngle[1], m->intendedYaw, 0x800);
+    m->faceAngle[1] = approach_angle(m->faceAngle[1], SCALE_PFs(m->intendedYaw), SCALE_PFs(0x800));
 #endif
 
     m->slideYaw = m->faceAngle[1];
@@ -369,7 +369,7 @@ s32 act_start_hanging(struct MarioState *m) {
     if (
         (m->input & INPUT_NONZERO_ANALOG)
         && m->intendedMag > 16.0f
-        && m->actionTimer > 1) {
+        && m->actionTimer > SCALE_NF(1)) {
         return set_mario_action(m, ACT_HANGING, 0);
     }
 
@@ -378,7 +378,7 @@ s32 act_start_hanging(struct MarioState *m) {
         return set_mario_action(m, ACT_FREEFALL, 0);
     }
 #else
-    if ((m->input & INPUT_NONZERO_ANALOG) && m->actionTimer >= 31) {
+    if ((m->input & INPUT_NONZERO_ANALOG) && m->actionTimer >= SCALE_NF(31)) {
         return set_mario_action(m, ACT_HANGING, 0);
     }
 
@@ -536,7 +536,7 @@ void climb_up_ledge(struct MarioState *m) {
 }
 
 void update_ledge_climb_camera(struct MarioState *m) {
-    f32 dist = MIN(m->actionTimer, 14.0f);
+    f32 dist = MIN(SCALE_PF(m->actionTimer), 14.0f);
 
     m->statusForCamera->pos[0] = m->pos[0] + dist * sins(m->faceAngle[1]);
     m->statusForCamera->pos[2] = m->pos[2] + dist * coss(m->faceAngle[1]);
@@ -562,7 +562,7 @@ s32 act_ledge_grab(struct MarioState *m) {
     s16 intendedDYaw = m->intendedYaw - m->faceAngle[1];
     s32 hasSpaceForMario = (m->ceilHeight - m->floorHeight >= 160.0f);
 
-    if (m->actionTimer < 10) {
+    if (m->actionTimer < SCALE_NF(10)) {
         m->actionTimer++;
     }
 #ifdef LEDGE_GRABS_CHECK_SLOPE_ANGLE
@@ -588,7 +588,7 @@ s32 act_ledge_grab(struct MarioState *m) {
     // On EU, you can't slow climb up ledges while holding A.
     if (m->actionTimer == 10 && (m->input & INPUT_NONZERO_ANALOG) && !(m->input & INPUT_A_DOWN))
 #else
-    if (m->actionTimer == 10 && (m->input & INPUT_NONZERO_ANALOG))
+    if (m->actionTimer == SCALE_NF(10) && (m->input & INPUT_NONZERO_ANALOG))
 #endif
     {
         if (intendedDYaw >= -0x4000 && intendedDYaw <= 0x4000) {
@@ -620,14 +620,14 @@ s32 act_ledge_climb_slow(struct MarioState *m) {
         return let_go_of_ledge(m);
     }
 
-    if (m->actionTimer >= 28
+    if (m->actionTimer >= SCALE_NF(28)
         && (m->input
             & (INPUT_NONZERO_ANALOG | INPUT_A_PRESSED | INPUT_OFF_FLOOR | INPUT_ABOVE_SLIDE))) {
         climb_up_ledge(m);
         return check_common_action_exits(m);
     }
 
-    if (m->actionTimer == 10) {
+    if (m->actionTimer == SCALE_NF(10)) {
         play_sound_if_no_flag(m, SOUND_MARIO_EEUH, MARIO_MARIO_SOUND_PLAYED);
     }
 
@@ -723,8 +723,8 @@ s32 act_in_cannon(struct MarioState *m) {
             break;
 
         case ACT_STATE_IN_CANNON_READY:
-            m->faceAngle[0] -= (s16)(m->controller->stickY * 10.0f);
-            marioObj->oMarioCannonInputYaw -= (s16)(m->controller->stickX * 10.0f);
+            m->faceAngle[0] -= SCALE_PFs((s16)(m->controller->stickY * 10.0f));
+            marioObj->oMarioCannonInputYaw -= SCALE_PFs((s16)(m->controller->stickX * 10.0f));
 
             m->faceAngle[0] = CLAMP(m->faceAngle[0], 0, DEGREES(80));
             marioObj->oMarioCannonInputYaw = CLAMP(marioObj->oMarioCannonInputYaw, -0x4000, 0x4000);
@@ -783,10 +783,10 @@ s32 act_tornado_twirling(struct MarioState *m) {
     f32 dz = (m->pos[2] - usedObj->oPosZ) * 0.95f;
 
     if (m->vel[1] < 60.0f) {
-        m->vel[1] += 1.0f;
+        m->vel[1] += SCALE_PF(1.0f);
     }
 
-    if ((marioObj->oMarioTornadoPosY += m->vel[1]) < 0.0f) {
+    if ((marioObj->oMarioTornadoPosY += SCALE_PF(m->vel[1])) < 0.0f) {
         marioObj->oMarioTornadoPosY = 0.0f;
     }
     if (marioObj->oMarioTornadoPosY > usedObj->hitboxHeight) {
@@ -797,14 +797,14 @@ s32 act_tornado_twirling(struct MarioState *m) {
     }
 
     if (m->angleVel[1] < 0x3000) {
-        m->angleVel[1] += 0x100;
+        m->angleVel[1] += SCALE_PF(0x100);
     }
 
     if (marioObj->oMarioTornadoYawVel < 0x1000) {
-        marioObj->oMarioTornadoYawVel += 0x100;
+        marioObj->oMarioTornadoYawVel += SCALE_PF(0x100);
     }
 
-    m->twirlYaw += m->angleVel[1];
+    m->twirlYaw += SCALE_PF(m->angleVel[1]);
 
     sinAngleVel = sins(marioObj->oMarioTornadoYawVel);
     cosAngleVel = coss(marioObj->oMarioTornadoYawVel);
