@@ -59,34 +59,34 @@ s32 is_anim_past_end(struct MarioState *m) {
 /**
  * Sets Mario's animation without any acceleration, running at its default rate.
  */
-s16 set_mario_animation(struct MarioState *m, s32 targetAnimID) {
-    struct Object *marioObj = m->marioObj;
-    struct Animation *targetAnim = m->animList->bufTarget;
+// s16 set_mario_animation(struct MarioState *m, s32 targetAnimID) {
+//     struct Object *marioObj = m->marioObj;
+//     struct Animation *targetAnim = m->animList->bufTarget;
 
-    if (load_patchable_table(m->animList, targetAnimID)) {
-        targetAnim->values = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->values);
-        targetAnim->index  = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->index);
-    }
+//     if (load_patchable_table(m->animList, targetAnimID)) {
+//         targetAnim->values = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->values);
+//         targetAnim->index  = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->index);
+//     }
 
-    if (marioObj->header.gfx.animInfo.animID != targetAnimID) {
-        marioObj->header.gfx.animInfo.animID = targetAnimID;
-        marioObj->header.gfx.animInfo.curAnim = targetAnim;
-        marioObj->header.gfx.animInfo.animAccel = 0;
-        marioObj->header.gfx.animInfo.animYTrans = m->animYTrans;
+//     if (marioObj->header.gfx.animInfo.animID != targetAnimID) {
+//         marioObj->header.gfx.animInfo.animID = targetAnimID;
+//         marioObj->header.gfx.animInfo.curAnim = targetAnim;
+//         marioObj->header.gfx.animInfo.animAccel = 0;
+//         marioObj->header.gfx.animInfo.animYTrans = m->animYTrans;
 
-        if (targetAnim->flags & ANIM_FLAG_NO_ACCEL) {
-            marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame;
-        } else {
-            if (targetAnim->flags & ANIM_FLAG_FORWARD) {
-                marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame + 1;
-            } else {
-                marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame - 1;
-            }
-        }
-    }
+//         if (targetAnim->flags & ANIM_FLAG_NO_ACCEL) {
+//             marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame;
+//         } else {
+//             if (targetAnim->flags & ANIM_FLAG_FORWARD) {
+//                 marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame + 1;
+//             } else {
+//                 marioObj->header.gfx.animInfo.animFrame = targetAnim->startFrame - 1;
+//             }
+//         }
+//     }
 
-    return marioObj->header.gfx.animInfo.animFrame;
-}
+//     return marioObj->header.gfx.animInfo.animFrame;
+// }
 
 /**
  * Sets Mario's animation where the animation is sped up or
