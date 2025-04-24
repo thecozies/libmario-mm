@@ -782,7 +782,7 @@ void adjust_analog_stick(struct Controller *controller) {
     }
 }
 
-EXPORT void ADDCALL step_libmario(s32 buttons, OSContPad *controllerData) {
+EXPORT void ADDCALL step_libmario(OSContPad *controllerData) {
     struct GraphNodeGenerated handFootScalerNode;
     struct GraphNodeScale scaleNode;
     handFootScalerNode.fnNode.node.next = (struct GraphNode*)&scaleNode;
@@ -918,12 +918,16 @@ EXPORT void ADDCALL getMarioAnimData(struct AnimData *out) {
         u16 *animIndices = (u16*)gMarioObject->header.gfx.animInfo.curAnim->index;
         s16 *animValues = (s16*)gMarioObject->header.gfx.animInfo.curAnim->values;
         s32 curFrame = gMarioObject->header.gfx.animInfo.animFrame;
-        // f32 animTranslationScale = gMarioObject->header.gfx.animInfo.animYTrans / (f32)gMarioObject->header.gfx.animInfo.curAnim->animYTransDivisor;
+        f32 animTranslationScale = 1;
+        if (gMarioObject->header.gfx.animInfo.curAnim->animYTransDivisor != 0) {
+            animTranslationScale = gMarioObject->header.gfx.animInfo.animYTrans / (f32)gMarioObject->header.gfx.animInfo.curAnim->animYTransDivisor;
+        }
+
         int i;
         if (animIndices != NULL && animValues != NULL) {
-            out->rootTranslation[0] = animValues[retrieve_animation_index(curFrame, &animIndices)];
-            out->rootTranslation[1] = animValues[retrieve_animation_index(curFrame, &animIndices)];
-            out->rootTranslation[2] = animValues[retrieve_animation_index(curFrame, &animIndices)];
+            out->rootTranslation[0] = animTranslationScale * animValues[retrieve_animation_index(curFrame, &animIndices)];
+            out->rootTranslation[1] = animTranslationScale * animValues[retrieve_animation_index(curFrame, &animIndices)];
+            out->rootTranslation[2] = animTranslationScale * animValues[retrieve_animation_index(curFrame, &animIndices)];
             for (i = 0; i < 20; i++) {
                 out->boneRotations[i][0] = (180.0f / 32768.0f) * animValues[retrieve_animation_index(curFrame, &animIndices)];
                 out->boneRotations[i][1] = (180.0f / 32768.0f) * animValues[retrieve_animation_index(curFrame, &animIndices)];

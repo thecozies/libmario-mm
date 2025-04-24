@@ -123,12 +123,22 @@
         s16 ceilYaw;
         s16 wallYaw;
     };
+    
+    struct MarioAnimData {
+        f32 rootTranslation[3];
+        s16 boneRotations[20][3];
+    };
+
     void getMarioAnimData(struct MarioAnimData *out);
 #else
     #include "types.h"
     #define SurfaceSM64 Surface
     #define SM64Normal Normal
 
+    struct MarioAnimData {
+        f32 rootTranslation[3];
+        s16 boneRotations[20][3];
+    };
 #endif
 
 typedef f32 FindFloorHandler_t(f32 x, f32 y, f32 z, struct SurfaceSM64 *floor, s32 *foundFloor);
@@ -143,17 +153,13 @@ extern FindWaterLevelHandler_t *gWaterLevelHandler;
 
 void init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler);
 // void step_libmario(s32 buttons, f32 stickX, f32 stickY);
-void step_libmario(s32 buttons, OSContPad *controllerData);
+void step_libmario(OSContPad *controllerData);
 extern struct MarioState *gMarioState;
 u32 getMarioAction(void);
 void setMarioRelativeCamYaw(s16 yaw);
 void getMarioVelocity(f32 vel[3]);
 void setMarioVelocity(f32 pos[3]);
 
-struct MarioAnimData {
-    f32 rootTranslation[3];
-    s16 boneRotations[20][3];
-};
 
 
 void getMarioPosition(f32 pos[3]);
