@@ -508,9 +508,13 @@ extern float powf(float base, float exp);
 #define SCALE_PF(v) ((v) * FRAME_RATE_SCALE)
 // #define SCALE_PFs(v) ((s32)lroundf((v) * FRAME_RATE_SCALE))
 #define SCALE_PFs(v) ((s32)lroundf((v) / 2))
-#define SCALE_NF(v) ((f32)(v) * 2)
+#define SCALE_NF(v) ((v) * 2)
 
 // oMarioBurnTimer checks need to use SCALE_NF
 // m->hurtCounter too
+// m->healCounter too
+// invincTimer/squishTimer i think i am doubling but need to verify
+// bbh entry action
+// teleport fade actions
 
 #endif // TYPES_H
