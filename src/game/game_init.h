@@ -13,10 +13,6 @@
 #define MARIO_ANIMS_POOL_SIZE 0x4000
 #define DEMO_INPUTS_POOL_SIZE 0x800
 
-struct GfxPool {
-    Gfx buffer[GFX_POOL_SIZE];
-    struct SPTask spTask;
-};
 
 struct DemoInput {
     u8 timer; // time until next input. if this value is 0, it means the demo is over

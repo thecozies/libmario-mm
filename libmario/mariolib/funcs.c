@@ -10,14 +10,163 @@
 #include "surface_collision.h"
 #include "mario.h"
 #include "object_list_processor.h"
+#include "rendering_graph_node.h"
+#include "graph_node.h"
+#include "model_data.h"
 
 #include "anims.c"
+
+u8 gBorderHeight = 0;
 
 void spawn_wind_particles(s16 pitch, s16 yaw) {}
 s32 save_file_get_flags() { return 0; }
 void *segmented_to_virtual(const void *addr) { return (void*)addr; }
 void *virtual_to_segmented(u32 segment, const void *addr) { return (void*)addr; }
-void *alloc_display_list(u32 size) { return NULL; }
+
+struct MainPoolBlock {
+    struct MainPoolBlock *prev;
+    struct MainPoolBlock *next;
+};
+#define ALIGN16(val) (((val) + 0xF) & ~0xF)
+
+#define MAIN_POOL_SIZE 0x8000
+u8 sMainPool[MAIN_POOL_SIZE];
+u32 sPoolFreeSpace;
+u8 *sPoolStart;
+u8 *sPoolEnd;
+struct MainPoolBlock *sPoolListHeadL;
+struct MainPoolBlock *sPoolListHeadR;
+
+void main_pool_init(void *start, void *end) {
+    sPoolStart = (u8 *) ALIGN16((uintptr_t) start) + 16;
+    sPoolEnd = (u8 *) ALIGN16((uintptr_t) end - 15) - 16;
+    sPoolFreeSpace = sPoolEnd - sPoolStart;
+
+    sPoolListHeadL = (struct MainPoolBlock *) (sPoolStart - 16);
+    sPoolListHeadR = (struct MainPoolBlock *) sPoolEnd;
+    sPoolListHeadL->prev = NULL;
+    sPoolListHeadL->next = NULL;
+    sPoolListHeadR->prev = NULL;
+    sPoolListHeadR->next = NULL;
+}
+
+u32 main_pool_available(void) {
+    return sPoolFreeSpace - 16;
+}
+
+#define ALIGN4(val) (((val) + 0x3) & ~0x3)
+
+void *main_pool_alloc(u32 size, u32 side) {
+    struct MainPoolBlock *newListHead;
+    void *addr = NULL;
+
+    size = ALIGN16(size) + 16;
+    if (size != 0 && sPoolFreeSpace >= size) {
+        sPoolFreeSpace -= size;
+        if (side == MEMORY_POOL_LEFT) {
+            newListHead = (struct MainPoolBlock *) ((u8 *) sPoolListHeadL + size);
+            sPoolListHeadL->next = newListHead;
+            newListHead->prev = sPoolListHeadL;
+            newListHead->next = NULL;
+            addr = (u8 *) sPoolListHeadL + 16;
+            sPoolListHeadL = newListHead;
+        } else {
+            newListHead = (struct MainPoolBlock *) ((u8 *) sPoolListHeadR - size);
+            sPoolListHeadR->prev = newListHead;
+            newListHead->next = sPoolListHeadR;
+            newListHead->prev = NULL;
+            sPoolListHeadR = newListHead;
+            addr = (u8 *) sPoolListHeadR + 16;
+        }
+    }
+    return addr;
+}
+
+u32 main_pool_free(void *addr) {
+    struct MainPoolBlock *block = (struct MainPoolBlock *) ((u8 *) addr - 16);
+    struct MainPoolBlock *oldListHead = (struct MainPoolBlock *) ((u8 *) addr - 16);
+
+    if (oldListHead < sPoolListHeadL) {
+        while (oldListHead->next != NULL) {
+            oldListHead = oldListHead->next;
+        }
+        sPoolListHeadL = block;
+        sPoolListHeadL->next = NULL;
+        sPoolFreeSpace += (uintptr_t) oldListHead - (uintptr_t) sPoolListHeadL;
+    } else {
+        while (oldListHead->prev != NULL) {
+            oldListHead = oldListHead->prev;
+        }
+        sPoolListHeadR = block->next;
+        sPoolListHeadR->prev = NULL;
+        sPoolFreeSpace += (uintptr_t) sPoolListHeadR - (uintptr_t) oldListHead;
+    }
+    return sPoolFreeSpace;
+}
+
+struct AllocOnlyPool *alloc_only_pool_init(u32 size, u32 side) {
+    void *addr;
+    struct AllocOnlyPool *subPool = NULL;
+
+    size = ALIGN4(size);
+    addr = main_pool_alloc(size + sizeof(struct AllocOnlyPool), side);
+    if (addr != NULL) {
+        subPool = (struct AllocOnlyPool *) addr;
+        subPool->totalSpace = size;
+        subPool->usedSpace = 0;
+        subPool->startPtr = (u8 *) addr + sizeof(struct AllocOnlyPool);
+        subPool->freePtr = (u8 *) addr + sizeof(struct AllocOnlyPool);
+    }
+    return subPool;
+}
+
+void *alloc_only_pool_alloc(struct AllocOnlyPool *pool, s32 size) {
+    void *addr = NULL;
+
+    size = ALIGN4(size);
+    if (size > 0 && pool->usedSpace + size <= pool->totalSpace) {
+        addr = pool->freePtr;
+        pool->freePtr += size;
+        pool->usedSpace += size;
+    }
+    return addr;
+}
+
+Gfx *gDisplayListHead;
+u8 *gGfxPoolEnd;
+struct GfxPool gGfxPools[2];
+struct GfxPool *gGfxPool = &gGfxPools[0];
+#define ALIGN8(val) (((val) + 0x7) & ~0x7)
+void *alloc_display_list(u32 size) {
+    void *ptr = NULL;
+
+    size = ALIGN8(size);
+    if (gGfxPoolEnd - size >= (u8 *) gDisplayListHead) {
+        gGfxPoolEnd -= size;
+        ptr = gGfxPoolEnd;
+    }
+    return ptr;
+}
+
+void init_graphics_pool(void) {
+    main_pool_init(sMainPool, sMainPool + MAIN_POOL_SIZE);
+    gGfxPool = &gGfxPools[0];
+    gDisplayListHead = gGfxPool->buffer;
+    gGfxPoolEnd = (u8 *)(gGfxPool->buffer + GFX_POOL_SIZE);
+}
+
+
+
+void select_gfx_pool(void) {
+    static s32 whichPool = 0;
+    whichPool ^= 1;
+    gGfxPool = &gGfxPools[whichPool];
+    gDisplayListHead = gGfxPool->buffer;
+    gGfxPoolEnd = (u8 *) (gGfxPool->buffer + GFX_POOL_SIZE);
+}
+
+void clear_framebuffer(s32 color) {}
+void make_viewport_clip_rect(Vp *viewport) {};
 
 void dl_rgba16_begin_cutscene_msg_fade() {}
 void dl_rgba16_stop_cutscene_msg_fade(void) {}
@@ -84,17 +233,6 @@ void reset_cutscene_msg_fade(void) {}
 u32 get_door_save_file_flag(struct Object *door) { return 0; }
 s32 save_file_get_cap_pos(Vec3s capPos) {}
 
-struct GraphNode *geo_add_child(struct GraphNode *parent, struct GraphNode *childNode) { return childNode; }
-struct GraphNode *geo_remove_child(struct GraphNode *graphNode) { return graphNode->parent; }
-void geo_obj_init_animation(struct GraphNodeObject *graphNode, struct Animation **animPtrAddr) {}
-void geo_obj_init(struct GraphNodeObject *graphNode, void *sharedChild, Vec3f pos, Vec3s angle) {}
-void geo_obj_init_animation_accel(struct GraphNodeObject *graphNode, struct Animation **animPtrAddr, u32 animAccel) {}
-
-struct GraphNodeObject *init_graph_node_object(struct AllocOnlyPool *pool,
-                                               struct GraphNodeObject *graphNode,
-                                               struct GraphNode *sharedChild, Vec3f pos, Vec3s angle,
-                                               Vec3f scale) { return graphNode; }
-
 void mario_grab_used_object(struct MarioState *m) {}
 void mario_drop_held_object(struct MarioState *m) {}
 u32 mario_check_object_grab(struct MarioState *m) { return FALSE; }
@@ -115,7 +253,7 @@ s8 gShowDebugText = FALSE;
 s16 gDebugInfo[16][8];
 u32 gTimeStopState = 0;
 s8 gNeverEnteredCastle = 1;
-u16 gAreaUpdateCounter = 0;
+extern u16 gAreaUpdateCounter;
 struct Controller *gPlayer1Controller;
 struct DmaHandlerList gMarioAnimsBuf;
 float gPaintingMarioYEntry = 0.0f;
@@ -127,7 +265,6 @@ struct Object MarioObjectInstance;
 struct Object *gMarioObject = &MarioObjectInstance;
 struct SpawnInfo gPlayerSpawnInfos[1];
 struct SpawnInfo *gMarioSpawnInfo = &gPlayerSpawnInfos[0];
-struct GraphNode **gLoadedGraphNodes = NULL;
 struct Area *gAreas = gAreaData;
 struct Area gCurrentAreaInstance;
 struct Area *gCurrentArea = &gCurrentAreaInstance;
@@ -167,12 +304,49 @@ s16 gCameraMovementFlags = 0;
 
 struct CreditsEntry *gCurrCreditsEntry = NULL;
 
-struct GraphNodeRoot *gCurGraphNodeRoot = NULL;
-struct GraphNodeMasterList *gCurGraphNodeMasterList = NULL;
-struct GraphNodePerspective *gCurGraphNodeCamFrustum = NULL;
-struct GraphNodeCamera *gCurGraphNodeCamera = NULL;
-struct GraphNodeObject *gCurGraphNodeObject = NULL;
-struct GraphNodeHeldObject *gCurGraphNodeHeldObject = NULL;
+struct GraphNodeRoot gCurGraphNodeRootSrc;
+extern struct GraphNodeRoot *gCurGraphNodeRoot;
+extern struct GraphNodeMasterList *gCurGraphNodeMasterList;
+extern struct GraphNodePerspective *gCurGraphNodeCamFrustum;
+extern struct GraphNodeCamera *gCurGraphNodeCamera;
+extern struct GraphNodeObject *gCurGraphNodeObject;
+extern struct GraphNodeHeldObject *gCurGraphNodeHeldObject;
+
+struct GraphNode *gGraphNodePointers[MODEL_ID_COUNT];
+struct GraphNode **gLoadedGraphNodes = gGraphNodePointers;
+
+Gfx *gDisplayListHeadOpa = NULL;
+Gfx *gDisplayListHeadXlu = NULL;
+
+struct GraphNodeMasterList gMasterList = { {}, {{}}, {{}} };
+
+#define GRAPH_NODE_POOL_SIZE 0x8000
+u8 gGraphNodePoolBuffer[GRAPH_NODE_POOL_SIZE] = { 0 };
+struct AllocOnlyPool gGraphNodePoolSrc = { GRAPH_NODE_POOL_SIZE, 0, gGraphNodePoolBuffer, gGraphNodePoolBuffer };
+
+#define LEVEL_POOL_SIZE 0x8000
+u8 gLevelPoolBuffer[LEVEL_POOL_SIZE] = { 0 };
+struct AllocOnlyPool sLevelPoolSrc = { LEVEL_POOL_SIZE, 0, gLevelPoolBuffer, gLevelPoolBuffer };
+struct AllocOnlyPool *sLevelPool = NULL;
+
+void init_graph_node_system(void) {
+    gCurGraphNodeRootSrc.areaIndex = 1;
+    gCurGraphNodeMasterList = &gMasterList;
+    gMasterList.node.prev = &gMasterList.node;
+    gMasterList.node.next = &gMasterList.node;
+    gMasterList.node.parent = NULL;
+    gMasterList.node.type = GRAPH_NODE_TYPE_MASTER_LIST;
+    gMasterList.node.flags = GRAPH_RENDER_ACTIVE | GRAPH_RENDER_Z_BUFFER;
+    gMasterList.node.children = &MarioObjectInstance.header.gfx.node;
+    gGraphNodePool = &gGraphNodePoolSrc;
+    MarioObjectInstance.header.gfx.node.next = &MarioObjectInstance.header.gfx.node;
+    MarioObjectInstance.header.gfx.node.prev = &MarioObjectInstance.header.gfx.node;
+    MarioObjectInstance.header.gfx.areaIndex = 1;
+    sLevelPool = &sLevelPoolSrc;
+    gLoadedGraphNodes[MODEL_MARIO] = process_geo_layout(sLevelPool, mario_geo);
+    gMarioSpawnInfo->model = gLoadedGraphNodes[MODEL_MARIO];
+}
+
 struct PlayerCameraState gPlayerCameraState[2];
 struct WarpTransition gWarpTransition;
 
@@ -199,7 +373,7 @@ const BehaviorScript bhvSingleCoinGetsSpawned[] = { 0 };
 const BehaviorScript bhvSpawnedStarNoLevelExit[] = { 0 };
 const BehaviorScript bhvWhitePuffExplosion[] = { 0 };
 
-struct Area gAreaData[8];
+struct Area gAreaData[8] = { { 0 } };
 s8 gDoorAdjacentRooms[60][2];
 struct ObjectNode gObjectListArray[16];
 struct ObjectNode gFreeObjectList;
@@ -274,82 +448,6 @@ s16 mario_obj_angle_to_object(struct MarioState *m, struct Object *o) {
 //     }
 // }
 
-/**
- * Update the animation frame of an object. The animation flags determine
- * whether it plays forwards or backwards, and whether it stops or loops at
- * the end etc.
- */
-s32 geo_update_animation_frame(struct AnimInfo *obj, s32 *accelAssist) {
-    s32 result;
-    struct Animation *anim;
-
-    anim = obj->curAnim;
-
-    if (obj->animTimer == gAreaUpdateCounter || anim->flags & ANIM_FLAG_NO_ACCEL) {
-        if (accelAssist != NULL) {
-            accelAssist[0] = obj->animFrameAccelAssist;
-        }
-
-        return obj->animFrame;
-    }
-
-    if (anim->flags & ANIM_FLAG_FORWARD) {
-        if (obj->animAccel) {
-            result = obj->animFrameAccelAssist - obj->animAccel;
-        } else {
-            result = (obj->animFrame - 1) << 16;
-        }
-
-        if (GET_HIGH_S16_OF_32(result) < anim->loopStart) {
-            if (anim->flags & ANIM_FLAG_NOLOOP) {
-                SET_HIGH_S16_OF_32(result, anim->loopStart);
-            } else {
-                SET_HIGH_S16_OF_32(result, anim->loopEnd - 1);
-            }
-        }
-    } else {
-        if (obj->animAccel != 0) {
-            result = obj->animFrameAccelAssist + obj->animAccel;
-        } else {
-            result = (obj->animFrame + 1) << 16;
-        }
-
-        if (GET_HIGH_S16_OF_32(result) >= anim->loopEnd) {
-            if (anim->flags & ANIM_FLAG_NOLOOP) {
-                SET_HIGH_S16_OF_32(result, anim->loopEnd - 1);
-            } else {
-                SET_HIGH_S16_OF_32(result, anim->loopStart);
-            }
-        }
-    }
-
-    if (accelAssist != 0) {
-        accelAssist[0] = result;
-    }
-
-    return GET_HIGH_S16_OF_32(result);
-}
-
-/**
- * Retrieves an index into animation data based on the attribute pointer
- * An attribute is an x-, y- or z-component of the translation / rotation for a part
- * Each attribute is a pair of s16's, where the first s16 represents the maximum frame
- * and the second s16 the actual index. This index can be used to index in the array
- * with actual animation values.
- */
-s32 retrieve_animation_index(s32 frame, u16 **attributes) {
-    s32 result;
-
-    if (frame < (*attributes)[0]) {
-        result = (*attributes)[1] + frame;
-    } else {
-        result = (*attributes)[1] + (*attributes)[0] - 1;
-    }
-
-    *attributes += 2;
-
-    return result;
-}
 
 void check_death_barrier(struct MarioState *m) {
     if (m->pos[1] < m->floorHeight + 2048.0f) {
@@ -517,51 +615,6 @@ void delay(int milliseconds)
     //     now = clock();
 }
 
-u8 gCurAnimType;
-u8 gCurAnimEnabled;
-s16 gCurrAnimFrame;
-f32 gCurAnimTranslationMultiplier;
-u16 *gCurrAnimAttribute;
-s16 *gCurAnimData;
-// after processing an object, the type is reset to this
-#define ANIM_TYPE_NONE                  0
-
-// Not all parts have full animation: to save space, some animations only
-// have xz, y, or no translation at all. All animations have rotations though
-#define ANIM_TYPE_TRANSLATION           1
-#define ANIM_TYPE_VERTICAL_TRANSLATION  2
-#define ANIM_TYPE_LATERAL_TRANSLATION   3
-#define ANIM_TYPE_NO_TRANSLATION        4
-
-void geo_set_animation_globals(struct AnimInfo *node, s32 hasAnimation) {
-    struct Animation *anim = node->curAnim;
-
-    if (hasAnimation) {
-        node->animFrame = geo_update_animation_frame(node, &node->animFrameAccelAssist);
-    }
-    node->animTimer = gAreaUpdateCounter;
-    if (anim->flags & ANIM_FLAG_HOR_TRANS) {
-        gCurAnimType = ANIM_TYPE_VERTICAL_TRANSLATION;
-    } else if (anim->flags & ANIM_FLAG_VERT_TRANS) {
-        gCurAnimType = ANIM_TYPE_LATERAL_TRANSLATION;
-    } else if (anim->flags & ANIM_FLAG_NO_TRANS) {
-        gCurAnimType = ANIM_TYPE_NO_TRANSLATION;
-    } else {
-        gCurAnimType = ANIM_TYPE_TRANSLATION;
-    }
-
-    gCurrAnimFrame = node->animFrame;
-    gCurAnimEnabled = (anim->flags & ANIM_FLAG_DISABLED) == 0;
-    gCurrAnimAttribute = segmented_to_virtual((void *) anim->index);
-    gCurAnimData = segmented_to_virtual((void *) anim->values);
-
-    if (anim->animYTransDivisor == 0) {
-        gCurAnimTranslationMultiplier = 1.0f;
-    } else {
-        gCurAnimTranslationMultiplier = (f32) node->animYTrans / (f32) anim->animYTransDivisor;
-    }
-}
-
 struct Camera areaCamera;
 
 #ifdef _WIN32
@@ -725,6 +778,7 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     gMarioState->marioBodyState = &gBodyStates[0];
     gMarioState->controller = &gControllers[0];
     gMarioState->area = &gAreaData[0];
+    gMarioState->area->index = 1;
     gMarioState->animList = &gMarioAnimsBuf;
     gMarioState->animList->bufTarget = &gTargetAnim;
     gMarioState->statusForCamera = &gPlayerCameraState[0];
@@ -738,9 +792,20 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     gMarioObject->header.gfx.node.flags |= GRAPH_RENDER_HAS_ANIMATION;
     gMarioState->area->camera = &areaCamera;
     areaCamera.yaw = 0;
+    init_graphics_pool();
+    recomp_printf("init_libmario: init_graphics_pool\n");
+    init_graph_node_system();
+    recomp_printf("init_libmario: init_graph_node_system\n");
+    gMarioObject->header.gfx.node.parent = &gMasterList.node;
+    geo_make_first_child(&gMarioObject->header.gfx.node);
+    recomp_printf("init_libmario: geo_make_first_child\n");
+    geo_obj_init_spawninfo(&gMarioObject->header.gfx, gMarioSpawnInfo);
+    gMarioObject->header.gfx.node.flags |= GRAPH_RENDER_ACTIVE | GRAPH_RENDER_Z_BUFFER;
+    gMarioObject->header.gfx.node.type = GRAPH_NODE_TYPE_OBJECT;
+    recomp_printf("init_libmario: gMarioObject->header.gfx.node %p\n", gMarioObject->header.gfx.node);
+    recomp_printf("init_libmario: geo_obj_init_spawninfo\n");
 }
 
-#include "graph_node.h"
 
 void setMarioRelativeCamYaw(s16 yaw) {
     gMarioState->area->camera->yaw = yaw;
@@ -782,7 +847,7 @@ void adjust_analog_stick(struct Controller *controller) {
     }
 }
 
-EXPORT void ADDCALL step_libmario(OSContPad *controllerData) {
+EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     struct GraphNodeGenerated handFootScalerNode;
     struct GraphNodeScale scaleNode;
     handFootScalerNode.fnNode.node.next = (struct GraphNode*)&scaleNode;
@@ -800,21 +865,56 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData) {
     execute_mario_action(gCurrentObject);
     copy_mario_state_to_object();
 
-    handFootScalerNode.parameter = 1;
-    geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
-    handFootScalerNode.parameter = 0;
-    geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
-    handFootScalerNode.parameter = 2;
-    geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
-
-    s32 hasAnimation = (gMarioObject->header.gfx.node.flags & GRAPH_RENDER_HAS_ANIMATION) != 0;
-    if (gMarioObject->header.gfx.animInfo.curAnim != NULL) {
-        geo_set_animation_globals(&gMarioObject->header.gfx.animInfo, hasAnimation);
+    if (updateAnims) {
+        handFootScalerNode.parameter = 1;
+        geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
+        handFootScalerNode.parameter = 0;
+        geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
+        handFootScalerNode.parameter = 2;
+        geo_mario_hand_foot_scaler(GEO_CONTEXT_RENDER, (struct GraphNode*)&handFootScalerNode, NULL);
+    
+        s32 hasAnimation = (gMarioObject->header.gfx.node.flags & GRAPH_RENDER_HAS_ANIMATION) != 0;
+        if (gMarioObject->header.gfx.animInfo.curAnim != NULL) {
+            geo_set_animation_globals(&gMarioObject->header.gfx.animInfo, hasAnimation);
+        }
     }
 
     gGlobalTimer++;
     gAreaUpdateCounter++;
 }
+extern struct AllocOnlyPool *gDisplayListHeap;
+Gfx *render_mario(Gfx **opa, Gfx **xlu) {
+    recomp_printf("render_mario: opa %p xlu %p\n", opa, xlu);
+    select_gfx_pool();
+    gDisplayListHeadOpa = *opa;
+    gDisplayListHeadXlu = *xlu;
+
+    recomp_printf("render_mario: gDisplayListHeadOpa %p gDisplayListHeadXlu %p\n", gDisplayListHeadOpa, gDisplayListHeadXlu);
+    gCurGraphNodeMasterList = NULL;
+    gCurGraphNodeRoot = &gCurGraphNodeRootSrc;
+    gMasterList.node.flags |= GRAPH_RENDER_ACTIVE;
+    gCurGraphNodeRoot->areaIndex = gMarioObject->header.gfx.areaIndex = gMarioState->area->index;
+    gMatStackIndex = 0;
+    recomp_printf("render_mario: gMatStackIndex %d\n", gMatStackIndex);
+
+    // Mtx *initialMatrix;
+    // initialMatrix = alloc_display_list(sizeof(*initialMatrix));
+    // recomp_printf("render_mario: initialMatrix %p\n", initialMatrix);
+    // mtxf_identity(gMatStack[gMatStackIndex]);
+    // recomp_printf("render_mario: gMatStack[%d] %p\n", gMatStackIndex, gMatStack[gMatStackIndex]);
+    // mtxf_to_mtx(initialMatrix, gMatStack[gMatStackIndex]);
+    // gMatStackFixed[gMatStackIndex] = initialMatrix;
+    // recomp_printf("render_mario: gMatStackFixed[%d] %p\n", gMatStackIndex, gMatStackFixed[gMatStackIndex]);
+    gDisplayListHeap = alloc_only_pool_init(main_pool_available() - sizeof(struct AllocOnlyPool), MEMORY_POOL_LEFT);
+    geo_process_master_list(&gMasterList);
+    main_pool_free(gDisplayListHeap);
+    recomp_printf("render_mario: geo_process_master_list done\n");
+    *opa = gDisplayListHeadOpa;
+    *xlu = gDisplayListHeadXlu;
+
+    return gDisplayListHead;
+}
+
 
 void getMarioPosition(f32 pos[3]) {
     pos[0] = gMarioObject->header.gfx.pos[0];

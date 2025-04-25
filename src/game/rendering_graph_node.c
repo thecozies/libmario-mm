@@ -286,6 +286,9 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
     s32 enableZBuffer = (node->node.flags & GRAPH_RENDER_Z_BUFFER) != 0;
     struct RenderModeContainer *mode1List = &renderModeTable_1Cycle[enableZBuffer];
     struct RenderModeContainer *mode2List = &renderModeTable_2Cycle[enableZBuffer];
+    s32 renderOpaXluSeparate = gDisplayListHeadOpa != NULL && gDisplayListHeadXlu != NULL;
+    Gfx *dlHead = renderOpaXluSeparate ? gDisplayListHeadOpa : gDisplayListHead;
+    
 
 #ifdef F3DEX_GBI_2
     // @bug This is where the LookAt values should be calculated but aren't.
@@ -309,51 +312,57 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
         ucode       = renderPhase->ucode;
         // Set the ucode for the current render phase
         switch_ucode(ucode);
-        gSPLookAt(gDisplayListHead++, &lookAt);
+        gSPLookAt(dlHead++, &lookAt);
 #endif
         if (enableZBuffer) {
             // Enable z buffer.
-            gDPPipeSync(gDisplayListHead++);
-            gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER);
+            gDPPipeSync(dlHead++);
+            gSPSetGeometryMode(dlHead++, G_ZBUFFER);
         }
         // Iterate through the layers on the current render phase.
         for (currLayer = startLayer; currLayer <= endLayer; currLayer++) {
             // Set 'currList' to the first DisplayListNode on the current layer.
             currList = node->listHeads[ucode][currLayer];
+
+            if (renderOpaXluSeparate && currLayer >= LAYER_TRANSPARENT_DECAL) {
+                gDisplayListHeadOpa = dlHead;
+                dlHead = gDisplayListHeadXlu;
+            }
+
 #if defined(DISABLE_AA) || !SILHOUETTE
             // Set the render mode for the current layer.
-            gDPSetRenderMode(gDisplayListHead++, mode1List->modes[currLayer],
+            gDPSetRenderMode(dlHead++, mode1List->modes[currLayer],
                                                  mode2List->modes[currLayer]);
 #else
             if (phaseIndex == RENDER_PHASE_NON_SILHOUETTE) {
                 // To properly cover the silhouette, disable AA.
                 // The silhouette model does not have AA due to the hack used to prevent triangle overlap.
-                gDPSetRenderMode(gDisplayListHead++, (mode1List->modes[currLayer] & ~IM_RD),
+                gDPSetRenderMode(dlHead++, (mode1List->modes[currLayer] & ~IM_RD),
                                                      (mode2List->modes[currLayer] & ~IM_RD));
             } else {
                 // Set the render mode for the current dl.
-                gDPSetRenderMode(gDisplayListHead++, mode1List->modes[currLayer],
+                gDPSetRenderMode(dlHead++, mode1List->modes[currLayer],
                                                      mode2List->modes[currLayer]);
             }
 #endif
             // Iterate through all the displaylists on the current layer.
             while (currList != NULL) {
                 // Add the display list's transformation to the master list.
-                gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(currList->transform),
+                gSPMatrix(dlHead++, VIRTUAL_TO_PHYSICAL(currList->transform),
                           (G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH));
 #if SILHOUETTE
                 if (phaseIndex == RENDER_PHASE_SILHOUETTE) {
                     // Add the current display list to the master list, with silhouette F3D.
-                    gSPDisplayList(gDisplayListHead++, dl_silhouette_begin);
-                    gSPDisplayList(gDisplayListHead++, currList->displayList);
-                    gSPDisplayList(gDisplayListHead++, dl_silhouette_end);
+                    gSPDisplayList(dlHead++, dl_silhouette_begin);
+                    gSPDisplayList(dlHead++, currList->displayList);
+                    gSPDisplayList(dlHead++, dl_silhouette_end);
                 } else {
                     // Add the current display list to the master list.
-                    gSPDisplayList(gDisplayListHead++, currList->displayList);
+                    gSPDisplayList(dlHead++, currList->displayList);
                 }
 #else
                 // Add the current display list to the master list.
-                gSPDisplayList(gDisplayListHead++, currList->displayList);
+                gSPDisplayList(dlHead++, currList->displayList);
 #endif
                 // Move to the next DisplayListNode.
                 currList = currList->next;
@@ -363,8 +372,11 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
 
     if (enableZBuffer) {
         // Disable z buffer.
-        gDPPipeSync(gDisplayListHead++);
-        gSPClearGeometryMode(gDisplayListHead++, G_ZBUFFER);
+        gDPPipeSync(dlHead++);
+        gSPClearGeometryMode(dlHead++, G_ZBUFFER);
+    }
+    if (renderOpaXluSeparate) {
+        gDisplayListHeadXlu = dlHead;
     }
 #ifdef OBJECTS_REJ
  #if defined(F3DEX_GBI_2) && defined(VISUAL_DEBUG)
@@ -448,6 +460,7 @@ static void append_dl_and_return(struct GraphNodeDisplayList *node) {
 void geo_process_master_list(struct GraphNodeMasterList *node) {
     s32 ucode, layer;
 
+    recomp_printf("geo_process_master_list\n");
     if (gCurGraphNodeMasterList == NULL && node->node.children != NULL) {
         gCurGraphNodeMasterList = node;
         for (ucode = 0; ucode < GRAPH_NODE_NUM_UCODES; ucode++) {
@@ -455,10 +468,14 @@ void geo_process_master_list(struct GraphNodeMasterList *node) {
                 node->listHeads[ucode][layer] = NULL;
             }
         }
+        // recomp_printf("Master list %p\n", node);
         geo_process_node_and_siblings(node->node.children);
+        // recomp_printf("Master list %p done\n", node->node.children);
         geo_process_master_list_sub(gCurGraphNodeMasterList);
+        // recomp_printf("Master list sub %p done\n", node);
         gCurGraphNodeMasterList = NULL;
     }
+    recomp_printf("geo_process_master_list done\n");
 }
 
 /**
@@ -491,15 +508,15 @@ void geo_process_perspective(struct GraphNodePerspective *node) {
     if (node->fnNode.node.children != NULL) {
         u16 perspNorm;
         Mtx *mtx = alloc_display_list(sizeof(*mtx));
-#ifdef WIDE
-        if (gConfig.widescreen && gCurrLevelNum != 0x01){
-            sAspectRatio = 16.0f / 9.0f; // 1.775f
-        } else {
-            sAspectRatio = 4.0f / 3.0f; // 1.33333f
-        }
-#else
+// #ifdef WIDE
+//         if (gConfig.widescreen && gCurrLevelNum != 0x01){
+//             sAspectRatio = 16.0f / 9.0f; // 1.775f
+//         } else {
+//             sAspectRatio = 4.0f / 3.0f; // 1.33333f
+//         }
+// #else
         sAspectRatio = 4.0f / 3.0f; // 1.33333f
-#endif
+// #endif
 
         guPerspective(mtx, &perspNorm, node->fov, sAspectRatio, node->near / (f32)WORLD_SCALE, node->far / (f32)WORLD_SCALE, 1.0f);
         gSPPerspNormalize(gDisplayListHead++, perspNorm);
@@ -519,11 +536,12 @@ void geo_process_perspective(struct GraphNodePerspective *node) {
  * range of this node.
  */
 void geo_process_level_of_detail(struct GraphNodeLevelOfDetail *node) {
-#ifdef AUTO_LOD
-    f32 distanceFromCam = gIsConsole ? -gMatStack[gMatStackIndex][3][2] : 50.0f;
-#else
-    f32 distanceFromCam = -gMatStack[gMatStackIndex][3][2];
-#endif
+    f32 distanceFromCam = 50.0f;
+// #ifdef AUTO_LOD
+//     f32 distanceFromCam = gIsConsole ? -gMatStack[gMatStackIndex][3][2] : 50.0f;
+// #else
+//     f32 distanceFromCam = -gMatStack[gMatStackIndex][3][2];
+// #endif
 
     if ((f32)node->minDistance <= distanceFromCam
         && distanceFromCam < (f32)node->maxDistance
@@ -970,52 +988,53 @@ s32 obj_is_in_view(struct GraphNodeObject *node, Mat4 matrix) {
     if (node->node.flags & GRAPH_RENDER_INVISIBLE) {
         return FALSE;
     }
-
-    struct GraphNode *geo = node->sharedChild;
-
-    s16 cullingRadius;
-
-    if (geo != NULL && geo->type == GRAPH_NODE_TYPE_CULLING_RADIUS) {
-        cullingRadius = ((struct GraphNodeCullingRadius *) geo)->cullingRadius;
-    } else {
-        cullingRadius = 300;
-    }
-
-    // Don't render if the object is close to or behind the camera
-    if (matrix[3][2] > -100.0f + cullingRadius) {
-        return FALSE;
-    }
-
-    //! This makes the HOLP not update when the camera is far away, and it
-    //  makes PU travel safe when the camera is locked on the main map.
-    //  If Mario were rendered with a depth over 65536 it would cause overflow
-    //  when converting the transformation matrix to a fixed point matrix.
-    if (matrix[3][2] < -20000.0f - cullingRadius) {
-        return FALSE;
-    }
-
-    // half of the fov in in-game angle units instead of degrees
-    s16 halfFov = (((((gCurGraphNodeCamFrustum->fov * sAspectRatio) / 2.0f) + 1.0f) * 32768.0f) / 180.0f) + 0.5f;
-
-    f32 hScreenEdge = -matrix[3][2] * tans(halfFov);
-    // -matrix[3][2] is the depth, which gets multiplied by tan(halfFov) to get
-    // the amount of units between the center of the screen and the horizontal edge
-    // given the distance from the object to the camera.
-
-    // This multiplication should really be performed on 4:3 as well,
-    // but the issue will be more apparent on widescreen.
-    // HackerSM64: This multiplication is done regardless of aspect ratio to fix object pop-in on the edges of the screen (which happens at 4:3 too)
-    // hScreenEdge *= GFX_DIMENSIONS_ASPECT_RATIO;
-
-    // Check whether the object is horizontally in view
-    if (matrix[3][0] > hScreenEdge + cullingRadius) {
-        return FALSE;
-    }
-    if (matrix[3][0] < -hScreenEdge - cullingRadius) {
-        return FALSE;
-    }
-
     return TRUE;
+
+    // struct GraphNode *geo = node->sharedChild;
+
+    // s16 cullingRadius;
+
+    // if (geo != NULL && geo->type == GRAPH_NODE_TYPE_CULLING_RADIUS) {
+    //     cullingRadius = ((struct GraphNodeCullingRadius *) geo)->cullingRadius;
+    // } else {
+    //     cullingRadius = 300;
+    // }
+
+    // // Don't render if the object is close to or behind the camera
+    // if (matrix[3][2] > -100.0f + cullingRadius) {
+    //     return FALSE;
+    // }
+
+    // //! This makes the HOLP not update when the camera is far away, and it
+    // //  makes PU travel safe when the camera is locked on the main map.
+    // //  If Mario were rendered with a depth over 65536 it would cause overflow
+    // //  when converting the transformation matrix to a fixed point matrix.
+    // if (matrix[3][2] < -20000.0f - cullingRadius) {
+    //     return FALSE;
+    // }
+
+    // // half of the fov in in-game angle units instead of degrees
+    // s16 halfFov = (((((gCurGraphNodeCamFrustum->fov * sAspectRatio) / 2.0f) + 1.0f) * 32768.0f) / 180.0f) + 0.5f;
+
+    // f32 hScreenEdge = -matrix[3][2] * tans(halfFov);
+    // // -matrix[3][2] is the depth, which gets multiplied by tan(halfFov) to get
+    // // the amount of units between the center of the screen and the horizontal edge
+    // // given the distance from the object to the camera.
+
+    // // This multiplication should really be performed on 4:3 as well,
+    // // but the issue will be more apparent on widescreen.
+    // // HackerSM64: This multiplication is done regardless of aspect ratio to fix object pop-in on the edges of the screen (which happens at 4:3 too)
+    // // hScreenEdge *= GFX_DIMENSIONS_ASPECT_RATIO;
+
+    // // Check whether the object is horizontally in view
+    // if (matrix[3][0] > hScreenEdge + cullingRadius) {
+    //     return FALSE;
+    // }
+    // if (matrix[3][0] < -hScreenEdge - cullingRadius) {
+    //     return FALSE;
+    // }
+
+    // return TRUE;
 }
 
 #ifdef VISUAL_DEBUG
@@ -1052,6 +1071,7 @@ void visualise_object_hitbox(struct Object *node) {
  * Process an object node.
  */
 void geo_process_object(struct Object *node) {
+    recomp_printf("geo_process_object %p\n", node);
     if (node->header.gfx.areaIndex == gCurGraphNodeRoot->areaIndex) {
         if (node->header.gfx.throwMatrix != NULL) {
             mtxf_mul(gMatStack[gMatStackIndex + 1], *node->header.gfx.throwMatrix,

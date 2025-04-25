@@ -516,4 +516,11 @@ extern float powf(float base, float exp);
 // caught in whirlpool is probably wrong
 // pss slide timer wrong
 
+struct GfxPool {
+    Gfx buffer[GFX_POOL_SIZE];
+    struct SPTask spTask;
+};
+
+extern int recomp_printf(const char* fmt, ...);
+
 #endif // TYPES_H

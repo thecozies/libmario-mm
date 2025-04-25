@@ -11,6 +11,12 @@ extern struct GraphNodePerspective *gCurGraphNodeCamFrustum;
 extern struct GraphNodeCamera      *gCurGraphNodeCamera;
 extern struct GraphNodeObject      *gCurGraphNodeObject;
 extern struct GraphNodeHeldObject  *gCurGraphNodeHeldObject;
+extern Gfx *gDisplayListHeadOpa;
+extern Gfx *gDisplayListHeadXlu;
+extern s16 gMatStackIndex;
+extern Mtx *gMatStackFixed[];
+extern Mat4 gMatStack[];
+
 #define gCurGraphNodeObjectNode ((struct Object *)gCurGraphNodeObject)
 extern u16 gAreaUpdateCounter;
 
@@ -86,5 +92,8 @@ enum AnimType {
 
 void geo_process_node_and_siblings(struct GraphNode *firstNode);
 void geo_process_root(struct GraphNodeRoot *node, Vp *b, Vp *c, s32 clearColor);
+void geo_set_animation_globals(struct AnimInfo *node, s32 hasAnimation);
+void geo_process_object(struct Object *node);
+void geo_process_master_list(struct GraphNodeMasterList *node);
 
 #endif // RENDERING_GRAPH_NODE_H
