@@ -437,7 +437,7 @@ void update_walking_speed(struct MarioState *m) {
         m->forwardVel += SCALE_PF(1.1f);
     } else if (m->forwardVel <= targetSpeed) {
         // If accelerating
-        m->forwardVel += 1.1f - (m->forwardVel * SCALE_DAMP(1.0f/43.0f));
+        m->forwardVel += SCALE_PF(1.1f) - (m->forwardVel * SCALE_DAMP(1.0f/43.0f));
     } else if (m->floor->normal.y >= 0.95f) {
         m->forwardVel -= SCALE_PF(1.0f);
     }
