@@ -323,7 +323,7 @@ s32 act_waking_up(struct MarioState *m) {
 
     m->actionTimer++;
 
-    if (m->actionTimer > 20) {
+    if (m->actionTimer > SCALE_NF(20)) {
         return set_mario_action(m, ACT_IDLE, 0);
     }
 
@@ -780,7 +780,7 @@ s32 act_shockwave_bounce(struct MarioState *m) {
         }
     }
 
-    if (++m->actionTimer == 48) {
+    if (++m->actionTimer == SCALE_NF(48)) {
         return set_mario_action(m, ACT_IDLE, 0);
     }
 
@@ -969,7 +969,7 @@ s32 act_air_throw_land(struct MarioState *m) {
         return set_mario_action(m, ACT_FREEFALL, 0);
     }
 
-    if (++m->actionTimer == 4) {
+    if (++m->actionTimer == SCALE_NF(4)) {
         mario_throw_held_object(m);
     }
 
@@ -990,15 +990,15 @@ s32 act_twirl_land(struct MarioState *m) {
     stationary_ground_step(m);
     set_mario_animation(m, MARIO_ANIM_TWIRL_LAND);
     if (m->angleVel[1] > 0) {
-        m->angleVel[1] -= 0x400;
+        m->angleVel[1] -= SCALE_PFs(0x400);
         if (m->angleVel[1] < 0) {
             m->angleVel[1] = 0;
         }
 
-        m->twirlYaw += m->angleVel[1];
+        m->twirlYaw += SCALE_PFs(m->angleVel[1]);
     }
 
-    m->marioObj->header.gfx.angle[1] += m->twirlYaw;
+    m->marioObj->header.gfx.angle[1] += SCALE_PFs(m->twirlYaw);
     if (is_anim_at_end(m) && m->angleVel[1] == 0) {
         m->faceAngle[1] += m->twirlYaw;
         set_mario_action(m, ACT_IDLE, 0);
