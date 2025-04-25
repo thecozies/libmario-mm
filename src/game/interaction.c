@@ -1542,7 +1542,7 @@ u32 interact_hoot(struct MarioState *m, UNUSED u32 interactType, struct Object *
     if (
         actionId >= (ACT_JUMP & ACT_ID_MASK)
         && actionId <  (ACT_SHOT_FROM_CANNON & ACT_ID_MASK)
-        && gGlobalTimer - m->usedObj->oHootMarioReleaseTime > 30
+        && gGlobalTimer - m->usedObj->oHootMarioReleaseTime > SCALE_NF(30)
     ) {
         mario_stop_riding_and_holding(m);
 
@@ -1573,9 +1573,9 @@ u32 interact_cap(struct MarioState *m, UNUSED u32 interactType, struct Object *o
         m->flags |= capFlag;
 
         switch (capFlag) {
-            case MARIO_VANISH_CAP: capTime =  600; capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_POWERUP  ); break;
-            case MARIO_METAL_CAP:  capTime =  600; capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_METAL_CAP); break;
-            case MARIO_WING_CAP:   capTime = 1800; capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_POWERUP  ); break;
+            case MARIO_VANISH_CAP: capTime =  SCALE_NF(600); capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_POWERUP  ); break;
+            case MARIO_METAL_CAP:  capTime =  SCALE_NF(600); capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_METAL_CAP); break;
+            case MARIO_WING_CAP:   capTime = SCALE_NF(1800); capMusic = SEQUENCE_ARGS(4, SEQ_EVENT_POWERUP  ); break;
         }
 
         if (capTime > m->capTimer) {
