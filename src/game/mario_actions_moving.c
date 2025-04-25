@@ -358,7 +358,7 @@ void update_shell_speed(struct MarioState *m) {
     if (m->forwardVel <= 0.0f) {
         m->forwardVel += SCALE_PF(1.1f);
     } else if (m->forwardVel <= targetSpeed) {
-        m->forwardVel += 1.1f - (m->forwardVel * SCALE_DAMP(1.0f / 58.0f));
+        m->forwardVel += SCALE_PF(1.1f) - (m->forwardVel * SCALE_DAMP(1.0f / 58.0f));
     } else if (m->floor->normal.y >= 0.95f) {
         m->forwardVel -= SCALE_PF(1.0f);
     }
