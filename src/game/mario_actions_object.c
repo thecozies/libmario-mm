@@ -10,11 +10,29 @@
 #include "engine/math_util.h"
 #include "rumble_init.h"
 
+// s8 sPunchingForwardVelocities[8] = { 0, 1, 1, 2, 3, 5, 7, 10 };
 /**
  * Used by act_punching() to determine Mario's forward velocity during each
  * animation frame.
  */
-s8 sPunchingForwardVelocities[8] = { 0, 1, 1, 2, 3, 5, 7, 10 };
+f32 sPunchingForwardVelocities[] = {
+    0,
+    0.5f,
+    1,
+    1.0f,
+    1,
+    1.5f,
+    2,
+    2.5f,
+    3,
+    4.0f,
+    5,
+    6.0f,
+    7,
+    8.5f,
+    10,
+    10.0f
+};
 
 void animated_stationary_ground_step(struct MarioState *m, s32 animation, u32 endAction) {
     stationary_ground_step(m);
@@ -159,7 +177,7 @@ s32 act_punching(struct MarioState *m) {
 
     m->actionState = ACT_STATE_PUNCHING_NO_JUMP_KICK;
     if (m->actionArg == 0) {
-        m->actionTimer = 7;
+        m->actionTimer = ARRAY_COUNT(sPunchingForwardVelocities) - 1;
     }
 
     mario_set_forward_vel(m, sPunchingForwardVelocities[m->actionTimer]);
@@ -248,7 +266,7 @@ s32 act_placing_down(struct MarioState *m) {
         return drop_and_set_mario_action(m, ACT_FREEFALL, 0);
     }
 
-    if (++m->actionTimer == 8) {
+    if (++m->actionTimer == SCALE_NF(8)) {
         mario_drop_held_object(m);
     }
 
@@ -269,7 +287,7 @@ s32 act_throwing(struct MarioState *m) {
         return drop_and_set_mario_action(m, ACT_FREEFALL, 0);
     }
 
-    if (++m->actionTimer == 7) {
+    if (++m->actionTimer == SCALE_NF(7)) {
         mario_throw_held_object(m);
         play_sound_if_no_flag(m, SOUND_MARIO_WAH2, MARIO_MARIO_SOUND_PLAYED);
         play_sound_if_no_flag(m, SOUND_ACTION_THROW, MARIO_ACTION_SOUND_PLAYED);
@@ -291,7 +309,7 @@ s32 act_heavy_throw(struct MarioState *m) {
         return drop_and_set_mario_action(m, ACT_FREEFALL, 0);
     }
 
-    if (++m->actionTimer == 13) {
+    if (++m->actionTimer == SCALE_NF(13)) {
         mario_drop_held_object(m);
         play_sound_if_no_flag(m, SOUND_MARIO_WAH2, MARIO_MARIO_SOUND_PLAYED);
         play_sound_if_no_flag(m, SOUND_ACTION_THROW, MARIO_ACTION_SOUND_PLAYED);
@@ -355,7 +373,7 @@ s32 act_holding_bowser(struct MarioState *m) {
     }
 
     if (m->angleVel[1] == 0) {
-        if (m->actionTimer++ > 120) {
+        if (m->actionTimer++ > SCALE_NF(120)) {
             return set_mario_action(m, ACT_RELEASING_BOWSER, 1);
         }
 
@@ -376,18 +394,18 @@ s32 act_holding_bowser(struct MarioState *m) {
             spin = CLAMP(spin, -0x80, 0x80);
 
             m->twirlYaw = m->intendedYaw;
-            m->angleVel[1] += spin;
+            m->angleVel[1] += SCALE_PFs(spin);
 
             m->angleVel[1] = CLAMP(m->angleVel[1], -0x1000, 0x1000);
         }
     } else {
         m->actionArg = 0;
-        m->angleVel[1] = approach_s32(m->angleVel[1], 0x0, 0x40, 0x40);
+        m->angleVel[1] = approach_s32(m->angleVel[1], 0x0, SCALE_PFs(0x40), SCALE_PFs(0x40));
     }
 
     // spin = starting yaw
     spin = m->faceAngle[1];
-    m->faceAngle[1] += m->angleVel[1];
+    m->faceAngle[1] += SCALE_PFs(m->angleVel[1]);
 
     // play sound on overflow
     if (m->angleVel[1] <= -0x100 && spin < m->faceAngle[1]) {
@@ -414,6 +432,7 @@ s32 act_holding_bowser(struct MarioState *m) {
 }
 
 s32 act_releasing_bowser(struct MarioState *m) {
+    // NTODO verify: this should happen on the first frame of the action anyways
     if (++m->actionTimer == 1) {
         if (m->actionArg == 0) {
 #if ENABLE_RUMBLE
