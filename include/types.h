@@ -510,10 +510,6 @@ extern float powf(float base, float exp);
 #define SCALE_PFs(v) ((s32)lroundf((v) / 2))
 #define SCALE_NF(v) ((v) * 2)
 
-// oMarioBurnTimer checks need to use SCALE_NF
-// m->hurtCounter too
-// m->healCounter too
-// invincTimer/squishTimer i think i am doubling but need to verify
 // bbh entry action
 // teleport fade actions
 // update_sliding is ROUGH. see `if (oldSpeed > 0.0f && newSpeed > 0.0f) {`

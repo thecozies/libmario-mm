@@ -553,7 +553,7 @@ u32 determine_knockback_action(struct MarioState *m, UNUSED s32 arg) {
 
     s16 angleToObject = mario_obj_angle_to_object(m, m->interactObj);
     s16 facingDYaw = angleToObject - m->faceAngle[1];
-    s16 remainingHealth = m->health - 0x40 * m->hurtCounter;
+    s16 remainingHealth = m->health - SCALE_PF(0x40) * m->hurtCounter;
 
     if (m->action & (ACT_FLAG_SWIMMING | ACT_FLAG_METAL_WATER)) {
         terrainIndex = 2;
@@ -685,7 +685,7 @@ u32 take_damage_from_interact_object(struct MarioState *m) {
         damage = 0;
     }
 
-    m->hurtCounter += 4 * damage;
+    m->hurtCounter += SCALE_NF(4 * damage);
 
 #if ENABLE_RUMBLE
     queue_rumble_data(5, 80);
@@ -729,7 +729,7 @@ void reset_mario_pitch(struct MarioState *m) {
 
 u32 interact_coin(struct MarioState *m, UNUSED u32 interactType, struct Object *obj) {
     m->numCoins += obj->oDamageOrCoinValue;
-    m->healCounter += 4 * obj->oDamageOrCoinValue;
+    m->healCounter += SCALE_NF(4 * obj->oDamageOrCoinValue);
 #ifdef BREATH_METER
     m->breathCounter += (4 * obj->oDamageOrCoinValue);
 #endif
@@ -754,7 +754,7 @@ u32 interact_water_ring(struct MarioState *m, UNUSED u32 interactType, struct Ob
 #ifdef BREATH_METER
     m->breathCounter += 4 * obj->oDamageOrCoinValue;
 #else
-    m->healCounter += 4 * obj->oDamageOrCoinValue;
+    m->healCounter += SCALE_NF(4 * obj->oDamageOrCoinValue);
 #endif
     obj->oInteractStatus = INT_STATUS_INTERACTED;
     return FALSE;
@@ -782,7 +782,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
 
 #ifdef POWER_STARS_HEAL
         m->hurtCounter = 0;
-        m->healCounter = 31;
+        m->healCounter = SCALE_NF(31);
  #ifdef BREATH_METER
         m->breathCounter = 31;
  #endif
@@ -1241,7 +1241,7 @@ u32 interact_bully(struct MarioState *m, UNUSED u32 interactType, struct Object 
     } else if (!sInvulnerable && !(m->flags & MARIO_VANISH_CAP)
              && !(obj->oInteractionSubtype & INT_SUBTYPE_DELAY_INVINCIBILITY)) {
         obj->oInteractStatus = INT_STATUS_INTERACTED;
-        m->invincTimer = 2;
+        m->invincTimer = SCALE_NF(2);
 
         update_mario_sound_and_camera(m);
         play_sound(SOUND_MARIO_EEUH, m->marioObj->header.gfx.cameraToObject);
@@ -1858,7 +1858,7 @@ void check_death_barrier(struct MarioState *m) {
 void check_lava_boost(struct MarioState *m) {
     if (!(m->action & ACT_FLAG_RIDING_SHELL) && m->pos[1] < m->floorHeight + 10.0f) {
         if (!(m->flags & MARIO_METAL_CAP)) {
-            m->hurtCounter += (m->flags & MARIO_CAP_ON_HEAD) ? 12 : 18;
+            m->hurtCounter += SCALE_NF((m->flags & MARIO_CAP_ON_HEAD) ? 12 : 18);
         }
 
         update_mario_sound_and_camera(m);

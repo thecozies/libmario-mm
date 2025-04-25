@@ -365,7 +365,7 @@ s32 drop_and_set_mario_action(struct MarioState *m, u32 action, u32 actionArg);
 void check_lava_boost(struct MarioState *m) {
     if (!(m->action & ACT_FLAG_RIDING_SHELL) && m->pos[1] < m->floorHeight + 10.0f) {
         if (!(m->flags & MARIO_METAL_CAP)) {
-            m->hurtCounter += (m->flags & MARIO_CAP_ON_HEAD) ? 12 : 18;
+            m->hurtCounter += SCALE_NF((m->flags & MARIO_CAP_ON_HEAD) ? 12 : 18);
         }
 
         update_mario_sound_and_camera(m);

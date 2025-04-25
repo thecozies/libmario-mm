@@ -1157,6 +1157,14 @@ s32 set_water_plunge_action(struct MarioState *m) {
 u8 sSquishScaleOverTime[16] = { 0x46, 0x32, 0x32, 0x3C, 0x46, 0x50, 0x50, 0x3C,
                                 0x28, 0x14, 0x14, 0x1E, 0x32, 0x3C, 0x3C, 0x28 };
 
+f32 interpolate_squish_scale(s32 frame) {
+    s32 frameA = frame / 2;
+    s32 frameB = frameA + 1;
+    f32 scaleA = sSquishScaleOverTime[frameA];
+    f32 scaleB = sSquishScaleOverTime[frameB];
+    return (scaleA + scaleB) / 2.0f;
+}
+
 /**
  * Applies the squish to Mario's model via scaling.
  */
@@ -1167,13 +1175,13 @@ void squish_mario_model(struct MarioState *m) {
             vec3f_set(m->marioObj->header.gfx.scale, 1.0f, 1.0f, 1.0f);
         }
         // If timer is less than 16, rubber-band Mario's size scale up and down.
-        else if (m->squishTimer <= 16) {
+        else if (m->squishTimer <= SCALE_NF(16)) {
             m->squishTimer -= 1;
 
             m->marioObj->header.gfx.scale[1] =
-                1.0f - ((sSquishScaleOverTime[15 - m->squishTimer] * 0.6f) / 100.0f);
+                1.0f - ((interpolate_squish_scale(SCALE_NF(15) - m->squishTimer) * 0.6f) / 100.0f);
             m->marioObj->header.gfx.scale[0] =
-                ((sSquishScaleOverTime[15 - m->squishTimer] * 0.4f) / 100.0f) + 1.0f;
+                ((interpolate_squish_scale(SCALE_NF(15) - m->squishTimer) * 0.4f) / 100.0f) + 1.0f;
 
             m->marioObj->header.gfx.scale[2] = m->marioObj->header.gfx.scale[0];
         } else {
@@ -1414,13 +1422,16 @@ void set_submerged_cam_preset_and_spawn_bubbles(struct MarioState *m) {
  */
 void update_mario_health(struct MarioState *m) {
     s32 terrainIsSnow;
+    //! 60hz hack: this is used for 60fps bc we can't get half of 3 and 1
+    static u32 frameCounter = 0;
+    frameCounter++;
 
     if (m->health >= 0x100) {
         // When already healing or hurting Mario, Mario's HP is not changed any more here.
         if (((u32) m->healCounter | (u32) m->hurtCounter) == 0) {
             if ((m->input & INPUT_IN_POISON_GAS) && !(m->action & ACT_FLAG_INTANGIBLE)) {
                 if (!(m->flags & MARIO_METAL_CAP) && !gDebugLevelSelect) {
-                    m->health -= 4;
+                    m->health -= SCALE_PFs(4);
                 }
             } else {
                 if ((m->action & ACT_FLAG_SWIMMING) && !(m->action & ACT_FLAG_INTANGIBLE)) {
@@ -1435,8 +1446,9 @@ void update_mario_health(struct MarioState *m) {
                     // when in snow terrains lose 3 health.
                     // If using the debug level select, do not lose any HP to water.
                     if ((m->pos[1] >= (m->waterLevel - 140)) && !terrainIsSnow) {
-                        m->health += 0x1A;
-                    } else if (!gDebugLevelSelect) {
+                        m->health += SCALE_PFs(0x1A);
+                    //! 60hz hack: this is used for 60fps bc we can't get half of 3 and 1
+                    } else if (!gDebugLevelSelect && (frameCounter % 2) == 0) {
                         m->health -= (terrainIsSnow ? 3 : 1);
                     }
 #endif
@@ -1445,11 +1457,11 @@ void update_mario_health(struct MarioState *m) {
         }
 
         if (m->healCounter > 0) {
-            m->health += 0x40;
+            m->health += SCALE_PFs(0x40);
             m->healCounter--;
         }
         if (m->hurtCounter > 0) {
-            m->health -= 0x40;
+            m->health -= SCALE_PFs(0x40);
             m->hurtCounter--;
         }
 
@@ -1567,40 +1579,40 @@ u64 sCapFlickerFrames = 0b100010001000100010001001001001001001001001001010101010
  * Updates the cap flags mainly based on the cap timer.
  */
 u32 update_and_return_cap_flags(struct MarioState *m) {
-    // u32 flags = m->flags;
-    // u32 action;
+    u32 flags = m->flags;
+    u32 action;
 
-    // if (m->capTimer > 0) {
-    //     action = m->action;
+    if (m->capTimer > 0) {
+        action = m->action;
 
-    //     if ((m->capTimer <= 60)
-    //         || ((action != ACT_READING_AUTOMATIC_DIALOG) && (action != ACT_READING_NPC_DIALOG)
-    //             && (action != ACT_READING_SIGN) && (action != ACT_IN_CANNON))) {
-    //         m->capTimer -= 1;
-    //     }
+        if ((m->capTimer <= SCALE_NF(60))
+            || ((action != ACT_READING_AUTOMATIC_DIALOG) && (action != ACT_READING_NPC_DIALOG)
+                && (action != ACT_READING_SIGN) && (action != ACT_IN_CANNON))) {
+            m->capTimer -= 1;
+        }
 
-    //     if (m->capTimer == 0) {
-    //         stop_cap_music();
+        if (m->capTimer == 0) {
+            stop_cap_music();
 
-    //         m->flags &= ~MARIO_SPECIAL_CAPS;
-    //         if (!(m->flags & MARIO_CAPS)) {
-    //             m->flags &= ~MARIO_CAP_ON_HEAD;
-    //         }
-    //     }
+            m->flags &= ~MARIO_SPECIAL_CAPS;
+            if (!(m->flags & MARIO_CAPS)) {
+                m->flags &= ~MARIO_CAP_ON_HEAD;
+            }
+        }
 
-    //     if (m->capTimer == 60) {
-    //         fadeout_cap_music();
-    //     }
+        if (m->capTimer == SCALE_NF(60)) {
+            fadeout_cap_music();
+        }
 
-    //     // This code flickers the cap through a long binary string, increasing in how
-    //     // common it flickers near the end.
-    //     if ((m->capTimer < 64) && ((1ULL << m->capTimer) & sCapFlickerFrames)) {
-    //         flags &= ~MARIO_SPECIAL_CAPS;
-    //         if (!(flags & MARIO_CAPS)) {
-    //             flags &= ~MARIO_CAP_ON_HEAD;
-    //         }
-    //     }
-    // }
+        // This code flickers the cap through a long binary string, increasing in how
+        // common it flickers near the end.
+        if ((m->capTimer < SCALE_NF(64)) && ((1ULL << SCALE_PFs(m->capTimer)) & sCapFlickerFrames)) {
+            flags &= ~MARIO_SPECIAL_CAPS;
+            if (!(flags & MARIO_CAPS)) {
+                flags &= ~MARIO_CAP_ON_HEAD;
+            }
+        }
+    }
 
     return m->flags;
 }
@@ -1623,7 +1635,7 @@ void mario_update_hitbox_and_cap_model(struct MarioState *m) {
     //! (Pause buffered hitstun) Since the global timer increments while paused,
     //  this can be paused through to give continual invisibility. This leads to
     //  no interaction with objects.
-    if ((m->invincTimer >= 3) && (gGlobalTimer & 1)) {
+    if ((m->invincTimer >= SCALE_NF(3)) && (gGlobalTimer & 1)) {
         m->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
     }
 
