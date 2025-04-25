@@ -324,7 +324,7 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
             // Set 'currList' to the first DisplayListNode on the current layer.
             currList = node->listHeads[ucode][currLayer];
 
-            if (renderOpaXluSeparate && currLayer >= LAYER_TRANSPARENT_DECAL) {
+            if (renderOpaXluSeparate && currLayer == LAYER_TRANSPARENT_DECAL) {
                 gDisplayListHeadOpa = dlHead;
                 dlHead = gDisplayListHeadXlu;
             }
