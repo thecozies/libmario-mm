@@ -73,7 +73,7 @@ s32 mario_update_punch_sequence(struct MarioState *m) {
             }
 
             if (m->actionArg == ACT_ARG_PUNCH_SEQUENCE_FIRST_PUNCH_FAST) {
-                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_FIRST_PUNCH | 0x4);
+                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_FIRST_PUNCH | SCALE_NF(0x4));
             }
             break;
 
@@ -109,7 +109,7 @@ s32 mario_update_punch_sequence(struct MarioState *m) {
             }
 
             if (m->actionArg == ACT_ARG_PUNCH_SEQUENCE_SECOND_PUNCH_FAST) {
-                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_SECOND_PUNCH | 0x4);
+                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_SECOND_PUNCH | SCALE_NF(0x4));
             }
             break;
 
@@ -132,7 +132,7 @@ s32 mario_update_punch_sequence(struct MarioState *m) {
             play_mario_action_sound(m, SOUND_MARIO_PUNCH_HOO, 1);
             animFrame = set_mario_animation(m, MARIO_ANIM_GROUND_KICK);
             if (animFrame == 0) {
-                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_KICK | 0x6);
+                m->marioBodyState->punchState = (PUNCH_STATE_TYPE_KICK | SCALE_NF(0x6));
             }
 
             if (animFrame >= 0 && animFrame < 8) {

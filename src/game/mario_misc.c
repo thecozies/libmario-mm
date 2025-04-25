@@ -69,8 +69,19 @@ static s8 gMarioBlinkAnimation[7] = { 1, 2, 1, 0, 1, 2, 1 };
  * All combined, this means e.g. the first animation scales Mario's fist by {2.4, 1.6, 1.2, 1.0} on
  * successive frames.
  */
-static s8 gMarioAttackScaleAnimation[3 * 6] = {
-    10, 12, 16, 24, 10, 10, 10, 14, 20, 30, 10, 10, 10, 16, 20, 26, 26, 20,
+// static s8 gMarioAttackScaleAnimation[3 * 6] = {
+//     10, 12, 16, 24, 10, 10, 10, 14, 20, 30, 10, 10, 10, 16, 20, 26, 26, 20,
+// };
+static f32 gMarioAttackScaleAnimation[3][12] = {
+    {
+        10, 11, 12, 14, 16, 20, 24, 17, 10, 10, 10, 10,
+    },
+    {
+        10, 12, 14, 17, 20, 25, 30, 20, 10, 10, 10, 10
+    },
+    {
+        10, 13, 16, 18, 20, 23, 26, 26, 26, 23, 20, 20
+    },
 };
 
 struct MarioBodyState gBodyStates[2]; // 2nd is never accessed in practice, most likely Luigi related
@@ -368,7 +379,7 @@ Gfx *geo_switch_mario_eyes(s32 callContext, struct GraphNode *node, UNUSED Mat4 
 
     if (callContext == GEO_CONTEXT_RENDER) {
         if (bodyState->eyeState == 0) {
-            blinkFrame = ((switchCase->numCases * 32 + gAreaUpdateCounter) >> 1) & 0x1F;
+            blinkFrame = ((switchCase->numCases * 32 + SCALE_PFs(gAreaUpdateCounter)) >> 1) & 0x1F;
             if (blinkFrame < 7) {
                 switchCase->selectedCase = gMarioBlinkAnimation[blinkFrame];
             } else {
@@ -476,9 +487,7 @@ Gfx *geo_mario_hand_foot_scaler(s32 callContext, struct GraphNode *node, UNUSED 
                 bodyState->punchState -= 1;
                 sMarioAttackAnimCounter = gAreaUpdateCounter;
             }
-            scaleNode->scale =
-                gMarioAttackScaleAnimation[asGenerated->parameter * 6 + (bodyState->punchState & PUNCH_STATE_TIMER_MASK)]
-                / 10.0f;
+            scaleNode->scale = gMarioAttackScaleAnimation[asGenerated->parameter][(bodyState->punchState & PUNCH_STATE_TIMER_MASK)] / 10.0f;
         }
     }
     return NULL;
@@ -530,9 +539,9 @@ Gfx *geo_mario_rotate_wing_cap_wings(s32 callContext, struct GraphNode *node, UN
         struct GraphNodeRotation *rotNode = (struct GraphNodeRotation *) node->next;
 
         if (!gBodyStates[asGenerated->parameter >> 1].wingFlutter) {
-            rotX = (coss((gAreaUpdateCounter & 0xF) << 12) + 1.0f) * 4096.0f;
+            rotX = (coss((SCALE_PFs(gAreaUpdateCounter) & 0xF) << 12) + 1.0f) * 4096.0f;
         } else {
-            rotX = (coss((gAreaUpdateCounter & 7) << 13) + 1.0f) * 6144.0f;
+            rotX = (coss((SCALE_PFs(gAreaUpdateCounter) & 7) << 13) + 1.0f) * 6144.0f;
         }
         rotNode->rotation[0] = (asGenerated->parameter & 1) ? rotX : -rotX;
     }
