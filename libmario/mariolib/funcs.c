@@ -783,6 +783,8 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     gMarioState->animList->bufTarget = &gTargetAnim;
     gMarioState->statusForCamera = &gPlayerCameraState[0];
     gMarioState->health = 0x880;
+    gMarioState->animYTrans = 0xBD;
+    gMarioState->flags = (MARIO_NORMAL_CAP | MARIO_CAP_ON_HEAD);
     gMarioState->marioObj->header.gfx.animInfo.curAnim = gMarioState->animList->bufTarget;
     gMarioState->marioObj->header.gfx.animInfo.curAnim->loopEnd = 100;
     gMarioState->marioObj->header.gfx.animInfo.animFrame = 0;
@@ -793,17 +795,17 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     gMarioState->area->camera = &areaCamera;
     areaCamera.yaw = 0;
     init_graphics_pool();
-    recomp_printf("init_libmario: init_graphics_pool\n");
+    // recomp_printf("init_libmario: init_graphics_pool\n");
     init_graph_node_system();
-    recomp_printf("init_libmario: init_graph_node_system\n");
+    // recomp_printf("init_libmario: init_graph_node_system\n");
     gMarioObject->header.gfx.node.parent = &gMasterList.node;
     geo_make_first_child(&gMarioObject->header.gfx.node);
-    recomp_printf("init_libmario: geo_make_first_child\n");
+    // recomp_printf("init_libmario: geo_make_first_child\n");
     geo_obj_init_spawninfo(&gMarioObject->header.gfx, gMarioSpawnInfo);
     gMarioObject->header.gfx.node.flags |= GRAPH_RENDER_ACTIVE | GRAPH_RENDER_Z_BUFFER;
     gMarioObject->header.gfx.node.type = GRAPH_NODE_TYPE_OBJECT;
-    recomp_printf("init_libmario: gMarioObject->header.gfx.node %p\n", gMarioObject->header.gfx.node);
-    recomp_printf("init_libmario: geo_obj_init_spawninfo\n");
+    // recomp_printf("init_libmario: gMarioObject->header.gfx.node %p\n", gMarioObject->header.gfx.node);
+    // recomp_printf("init_libmario: geo_obj_init_spawninfo\n");
 }
 
 
@@ -882,33 +884,26 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     gGlobalTimer++;
     gAreaUpdateCounter++;
 }
+
 extern struct AllocOnlyPool *gDisplayListHeap;
-Gfx *render_mario(Gfx **opa, Gfx **xlu) {
-    recomp_printf("render_mario: opa %p xlu %p\n", opa, xlu);
+Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale) {
     select_gfx_pool();
     gDisplayListHeadOpa = *opa;
     gDisplayListHeadXlu = *xlu;
 
-    recomp_printf("render_mario: gDisplayListHeadOpa %p gDisplayListHeadXlu %p\n", gDisplayListHeadOpa, gDisplayListHeadXlu);
     gCurGraphNodeMasterList = NULL;
     gCurGraphNodeRoot = &gCurGraphNodeRootSrc;
-    gMasterList.node.flags |= GRAPH_RENDER_ACTIVE;
+    gMasterList.node.flags |= GRAPH_RENDER_ACTIVE | GRAPH_RENDER_Z_BUFFER;
     gCurGraphNodeRoot->areaIndex = gMarioObject->header.gfx.areaIndex = gMarioState->area->index;
     gMatStackIndex = 0;
-    recomp_printf("render_mario: gMatStackIndex %d\n", gMatStackIndex);
 
-    // Mtx *initialMatrix;
-    // initialMatrix = alloc_display_list(sizeof(*initialMatrix));
-    // recomp_printf("render_mario: initialMatrix %p\n", initialMatrix);
-    // mtxf_identity(gMatStack[gMatStackIndex]);
-    // recomp_printf("render_mario: gMatStack[%d] %p\n", gMatStackIndex, gMatStack[gMatStackIndex]);
-    // mtxf_to_mtx(initialMatrix, gMatStack[gMatStackIndex]);
-    // gMatStackFixed[gMatStackIndex] = initialMatrix;
-    // recomp_printf("render_mario: gMatStackFixed[%d] %p\n", gMatStackIndex, gMatStackFixed[gMatStackIndex]);
+    mtxf_identity(gMatStack[gMatStackIndex]);
+    Vec3f to_mm_scale = { scale[0], scale[1], scale[2] };
+    mtxf_scale_vec3f(gMatStack[gMatStackIndex], gMatStack[gMatStackIndex], to_mm_scale);
+
     gDisplayListHeap = alloc_only_pool_init(main_pool_available() - sizeof(struct AllocOnlyPool), MEMORY_POOL_LEFT);
     geo_process_master_list(&gMasterList);
     main_pool_free(gDisplayListHeap);
-    recomp_printf("render_mario: geo_process_master_list done\n");
     *opa = gDisplayListHeadOpa;
     *xlu = gDisplayListHeadXlu;
 

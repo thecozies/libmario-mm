@@ -11,7 +11,7 @@ s32 is_anim_past_end(struct MarioState *m);
 // s16 set_mario_animation(struct MarioState *m, s32 targetAnimID);
 s16 set_mario_anim_with_accel(struct MarioState *m, s32 targetAnimID, s32 accel);
 #define BASE_ANIM_SPEED 0x10000
-#define set_mario_animation(m, tanimId) (set_mario_anim_with_accel(m, tanimId, BASE_ANIM_SPEED))
+#define set_mario_animation(m, tanimId) (set_mario_anim_with_accel(m, tanimId, SCALE_NF(BASE_ANIM_SPEED)))
 void set_anim_to_frame(struct MarioState *m, s16 animFrame);
 s32 is_anim_past_frame(struct MarioState *m, s16 animFrame);
 s16 find_mario_anim_flags_and_translation(struct Object *obj, s32 yaw, Vec3s translation);

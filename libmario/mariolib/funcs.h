@@ -154,7 +154,7 @@ extern FindWaterLevelHandler_t *gWaterLevelHandler;
 void init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler);
 // void step_libmario(s32 buttons, f32 stickX, f32 stickY);
 void step_libmario(OSContPad *controllerData, s32 updateAnims);
-Gfx *render_mario(Gfx **opa, Gfx **xlu);
+Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale);
 extern struct MarioState *gMarioState;
 u32 getMarioAction(void);
 void setMarioRelativeCamYaw(s16 yaw);

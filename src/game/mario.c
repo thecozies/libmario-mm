@@ -101,6 +101,7 @@ s16 set_mario_anim_with_accel(struct MarioState *m, s32 targetAnimID, s32 accel)
         targetAnim->index = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->index);
     }
 
+    accel = SCALE_PFs(accel);
     if (marioObj->header.gfx.animInfo.animID != targetAnimID) {
         marioObj->header.gfx.animInfo.animID = targetAnimID;
         marioObj->header.gfx.animInfo.curAnim = targetAnim;

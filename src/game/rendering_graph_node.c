@@ -82,6 +82,9 @@ struct RenderModeContainer {
     u32 modes[LAYER_COUNT];
 };
 
+#undef VIRTUAL_TO_PHYSICAL
+#define VIRTUAL_TO_PHYSICAL(addr) (addr)
+
 /* Rendermode settings for cycle 1 for all 8 or 13 layers. */
 struct RenderModeContainer renderModeTable_1Cycle[2] = { { {
         G_RM_OPA_SURF,                      // LAYER_FORCE
@@ -102,11 +105,11 @@ struct RenderModeContainer renderModeTable_1Cycle[2] = { { {
     } },
     { {
         /* z-buffered */
-        G_RM_ZB_OPA_SURF,                   // LAYER_FORCE
-        G_RM_AA_ZB_OPA_SURF,                // LAYER_OPAQUE
-        G_RM_AA_ZB_OPA_INTER,               // LAYER_OPAQUE_INTER
-        G_RM_AA_ZB_OPA_DECAL,               // LAYER_OPAQUE_DECAL
-        G_RM_AA_ZB_TEX_EDGE,                // LAYER_ALPHA
+        G_RM_FOG_SHADE_A,                   // LAYER_FORCE
+        G_RM_FOG_SHADE_A,                // LAYER_OPAQUE
+        G_RM_FOG_SHADE_A,               // LAYER_OPAQUE_INTER
+        G_RM_FOG_SHADE_A,               // LAYER_OPAQUE_DECAL
+        G_RM_FOG_SHADE_A,                // LAYER_ALPHA
 #if SILHOUETTE
         G_RM_AA_ZB_TEX_EDGE | ZMODE_DEC,    // LAYER_ALPHA_DECAL
         G_RM_AA_ZB_OPA_SURF,                // LAYER_SILHOUETTE_OPAQUE
@@ -114,9 +117,9 @@ struct RenderModeContainer renderModeTable_1Cycle[2] = { { {
         G_RM_AA_ZB_OPA_SURF,                // LAYER_OCCLUDE_SILHOUETTE_OPAQUE
         G_RM_AA_ZB_TEX_EDGE,                // LAYER_OCCLUDE_SILHOUETTE_ALPHA
 #endif
-        G_RM_AA_ZB_XLU_DECAL,               // LAYER_TRANSPARENT_DECAL
-        G_RM_AA_ZB_XLU_SURF,                // LAYER_TRANSPARENT
-        G_RM_AA_ZB_XLU_INTER,               // LAYER_TRANSPARENT_INTER
+        G_RM_FOG_SHADE_A,               // LAYER_TRANSPARENT_DECAL
+        G_RM_FOG_SHADE_A,                // LAYER_TRANSPARENT
+        G_RM_FOG_SHADE_A,               // LAYER_TRANSPARENT_INTER
     } } };
 
 /* Rendermode settings for cycle 2 for all 13 layers. */
@@ -164,9 +167,9 @@ ALIGNED16 struct GraphNodeObject *gCurGraphNodeObject = NULL;
 ALIGNED16 struct GraphNodeHeldObject *gCurGraphNodeHeldObject = NULL;
 u16 gAreaUpdateCounter = 0;
 
-#ifdef F3DEX_GBI_2
-LookAt lookAt;
-#endif
+// #ifdef F3DEX_GBI_2
+// LookAt lookAt;
+// #endif
 
 #if SILHOUETTE
 // AA_EN        Enable anti aliasing (not actually used for AA in this case).
@@ -290,17 +293,17 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
     Gfx *dlHead = renderOpaXluSeparate ? gDisplayListHeadOpa : gDisplayListHead;
     
 
-#ifdef F3DEX_GBI_2
-    // @bug This is where the LookAt values should be calculated but aren't.
-    // As a result, environment mapping is broken on Fast3DEX2 without the
-    // changes below.
-    Mtx lMtx;
- #ifdef FIX_REFLECT_MTX
-    guLookAtReflect(&lMtx, &lookAt, 0.0f, 0.0f, 0.0f, /* eye */ 0.0f, 0.0f, 1.0f, /* at */ 0.0f, -1.0f, 0.0f /* up */);
- #else
-    guLookAtReflect(&lMtx, &lookAt, 0.0f, 0.0f, 0.0f, /* eye */ 0.0f, 0.0f, 1.0f, /* at */ 1.0f, 0.0f, 0.0f /* up */);
- #endif
-#endif // F3DEX_GBI_2
+// #ifdef F3DEX_GBI_2
+//     // @bug This is where the LookAt values should be calculated but aren't.
+//     // As a result, environment mapping is broken on Fast3DEX2 without the
+//     // changes below.
+//     Mtx lMtx;
+//  #ifdef FIX_REFLECT_MTX
+//     guLookAtReflect(&lMtx, &lookAt, 0.0f, 0.0f, 0.0f, /* eye */ 0.0f, 0.0f, 1.0f, /* at */ 0.0f, -1.0f, 0.0f /* up */);
+//  #else
+//     guLookAtReflect(&lMtx, &lookAt, 0.0f, 0.0f, 0.0f, /* eye */ 0.0f, 0.0f, 1.0f, /* at */ 1.0f, 0.0f, 0.0f /* up */);
+//  #endif
+// #endif // F3DEX_GBI_2
 
     // Loop through the render phases
     for (phaseIndex = RENDER_PHASE_FIRST; phaseIndex < RENDER_PHASE_END; phaseIndex++) {
@@ -312,7 +315,7 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
         ucode       = renderPhase->ucode;
         // Set the ucode for the current render phase
         switch_ucode(ucode);
-        gSPLookAt(dlHead++, &lookAt);
+        // gSPLookAt(dlHead++, &lookAt);
 #endif
         if (enableZBuffer) {
             // Enable z buffer.
@@ -398,7 +401,7 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
 void geo_append_display_list(void *displayList, s32 layer) {
     s32 ucode = GRAPH_NODE_UCODE_DEFAULT;
 #ifdef F3DEX_GBI_2
-    gSPLookAt(gDisplayListHead++, &lookAt);
+    // gSPLookAt(gDisplayListHead++, &lookAt);
 #endif
 #if defined(OBJECTS_REJ) || SILHOUETTE
     if (gCurGraphNodeObject != NULL) {
@@ -460,7 +463,7 @@ static void append_dl_and_return(struct GraphNodeDisplayList *node) {
 void geo_process_master_list(struct GraphNodeMasterList *node) {
     s32 ucode, layer;
 
-    recomp_printf("geo_process_master_list\n");
+    // recomp_printf("geo_process_master_list\n");
     if (gCurGraphNodeMasterList == NULL && node->node.children != NULL) {
         gCurGraphNodeMasterList = node;
         for (ucode = 0; ucode < GRAPH_NODE_NUM_UCODES; ucode++) {
@@ -475,7 +478,7 @@ void geo_process_master_list(struct GraphNodeMasterList *node) {
         // recomp_printf("Master list sub %p done\n", node);
         gCurGraphNodeMasterList = NULL;
     }
-    recomp_printf("geo_process_master_list done\n");
+    // recomp_printf("geo_process_master_list done\n");
 }
 
 /**
@@ -761,6 +764,7 @@ void geo_process_animated_part(struct GraphNodeAnimatedPart *node) {
         translation[2] += gCurrAnimData[retrieve_animation_index(gCurrAnimFrame, &gCurrAnimAttribute)]
                           * gCurrAnimTranslationMultiplier;
         gCurrAnimType = ANIM_TYPE_ROTATION;
+        // recomp_printf("translation 0 x(%f) %f %f %f\n", gCurrAnimTranslationMultiplier, translation[0], translation[1], translation[2]);
     } else {
         if (gCurrAnimType == ANIM_TYPE_LATERAL_TRANSLATION) {
             translation[0] +=
@@ -771,6 +775,7 @@ void geo_process_animated_part(struct GraphNodeAnimatedPart *node) {
                 gCurrAnimData[retrieve_animation_index(gCurrAnimFrame, &gCurrAnimAttribute)]
                 * gCurrAnimTranslationMultiplier;
             gCurrAnimType = ANIM_TYPE_ROTATION;
+            // recomp_printf("translation 1 x(%f) %f %f %f\n", gCurrAnimTranslationMultiplier, translation[0], translation[1], translation[2]);
         } else {
             if (gCurrAnimType == ANIM_TYPE_VERTICAL_TRANSLATION) {
                 gCurrAnimAttribute += 2;
@@ -779,6 +784,7 @@ void geo_process_animated_part(struct GraphNodeAnimatedPart *node) {
                     * gCurrAnimTranslationMultiplier;
                 gCurrAnimAttribute += 2;
                 gCurrAnimType = ANIM_TYPE_ROTATION;
+                // recomp_printf("translation 2 x(%f) %f %f %f\n", gCurrAnimTranslationMultiplier, translation[0], translation[1], translation[2]);
             } else if (gCurrAnimType == ANIM_TYPE_NO_TRANSLATION) {
                 gCurrAnimAttribute += 6;
                 gCurrAnimType = ANIM_TYPE_ROTATION;
@@ -1071,7 +1077,7 @@ void visualise_object_hitbox(struct Object *node) {
  * Process an object node.
  */
 void geo_process_object(struct Object *node) {
-    recomp_printf("geo_process_object %p\n", node);
+    // recomp_printf("geo_process_object %p\n", node);
     if (node->header.gfx.areaIndex == gCurGraphNodeRoot->areaIndex) {
         if (node->header.gfx.throwMatrix != NULL) {
             mtxf_mul(gMatStack[gMatStackIndex + 1], *node->header.gfx.throwMatrix,
@@ -1141,9 +1147,9 @@ void geo_process_held_object(struct GraphNodeHeldObject *node) {
     Vec3f translation;
     Mat4 tempMtx;
 
-#ifdef F3DEX_GBI_2
-    gSPLookAt(gDisplayListHead++, &lookAt);
-#endif
+// #ifdef F3DEX_GBI_2
+//     gSPLookAt(gDisplayListHead++, &lookAt);
+// #endif
 
     if (node->fnNode.func != NULL) {
         node->fnNode.func(GEO_CONTEXT_RENDER, &node->fnNode.node, gMatStack[gMatStackIndex]);
