@@ -630,7 +630,7 @@ FindCeilHandler_t *gCeilHandler = NULL;
 FindWallHandler_t *gWallHandler = NULL;
 FindWaterLevelHandler_t *gWaterLevelHandler = NULL;
 
-struct Surface surfacePool[0x100];
+struct Surface surfacePool[0x800];
 s32 surfacesUsed = 0;
 
 f32 find_floor(f32 xPos, f32 yPos, f32 zPos, struct Surface **pfloor) { 

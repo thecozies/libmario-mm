@@ -11,9 +11,9 @@
 // Vanilla value is 78.
 #define FIND_FLOOR_BUFFER 78
 
-#define CELL_HEIGHT_LIMIT            20000
-#define FLOOR_LOWER_LIMIT           -11000
-#define FLOOR_LOWER_LIMIT_MISC      (FLOOR_LOWER_LIMIT + 1000)
+#define CELL_HEIGHT_LIMIT            0x7FFF
+#define FLOOR_LOWER_LIMIT           -0x7FFF
+#define FLOOR_LOWER_LIMIT_MISC      (FLOOR_LOWER_LIMIT + 1)
 
 #define is_outside_level_bounds(xPos, zPos) \
     (((xPos) <= -LEVEL_BOUNDARY_MAX) ||     \
