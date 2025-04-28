@@ -808,6 +808,14 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     // recomp_printf("init_libmario: geo_obj_init_spawninfo\n");
 }
 
+void reset_mario_state(void) {
+    gMarioState->action = ACT_FREEFALL;
+    gMarioState->forwardVel = 0.0f;
+    gMarioState->vel[0] = 0.0f;
+    gMarioState->vel[1] = 0.0f;
+    gMarioState->vel[2] = 0.0f;
+}
+
 
 void setMarioRelativeCamYaw(s16 yaw) {
     gMarioState->area->camera->yaw = yaw;
@@ -853,6 +861,7 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     struct GraphNodeGenerated handFootScalerNode;
     struct GraphNodeScale scaleNode;
     handFootScalerNode.fnNode.node.next = (struct GraphNode*)&scaleNode;
+    gAreaUpdateCounter++;
 
     gControllers[0].rawStickX = controllerData->stick_x;
     gControllers[0].rawStickY = controllerData->stick_y;
@@ -861,6 +870,22 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     // 0.5x A presses are a good meme
     gControllers[0].buttonDown = controllerData->button;
     adjust_analog_stick(&gControllers[0]);
+
+    if (gControllers[0].buttonPressed & L_JPAD) {
+        gMarioState->flags ^= MARIO_METAL_CAP;
+    }
+    if (gControllers[0].buttonPressed & R_JPAD) {
+        gMarioState->flags ^= MARIO_WING_CAP;
+    }
+    if (gControllers[0].buttonPressed & U_JPAD) {
+        gMarioState->flags ^= MARIO_CAP_ON_HEAD;
+    }
+    if (gControllers[0].buttonPressed & D_JPAD) {
+        gMarioState->flags ^= MARIO_CAP_IN_HAND;
+    }
+
+    gMarioState->capTimer = 0xFFFF;
+    gMarioState->health = 0x880;
 
     surfacesUsed = 0;
 
@@ -882,7 +907,6 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     }
 
     gGlobalTimer++;
-    gAreaUpdateCounter++;
 }
 
 extern struct AllocOnlyPool *gDisplayListHeap;

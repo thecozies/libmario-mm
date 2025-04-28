@@ -860,13 +860,13 @@ void geo_process_bone(struct GraphNodeBone *node) {
  * Initialize the animation-related global variables for the currently drawn
  * object's animation.
  */
-void geo_set_animation_globals(struct AnimInfo *node, s32 hasAnimation) {
-    struct Animation *anim = node->curAnim;
+void geo_set_animation_globals(struct AnimInfo *animInfo, s32 hasAnimation) {
+    struct Animation *anim = animInfo->curAnim;
 
     if (hasAnimation) {
-        node->animFrame = geo_update_animation_frame(node, &node->animFrameAccelAssist);
+        animInfo->animFrame = geo_update_animation_frame(animInfo, &animInfo->animFrameAccelAssist);
     }
-    node->animTimer = gAreaUpdateCounter;
+    animInfo->animTimer = gAreaUpdateCounter;
     if (anim->flags & ANIM_FLAG_HOR_TRANS) {
         gCurrAnimType = ANIM_TYPE_VERTICAL_TRANSLATION;
     } else if (anim->flags & ANIM_FLAG_VERT_TRANS) {
@@ -877,7 +877,7 @@ void geo_set_animation_globals(struct AnimInfo *node, s32 hasAnimation) {
         gCurrAnimType = ANIM_TYPE_TRANSLATION;
     }
 
-    gCurrAnimFrame = node->animFrame;
+    gCurrAnimFrame = animInfo->animFrame;
     gCurrAnimEnabled = (anim->flags & ANIM_FLAG_DISABLED) == 0;
     gCurrAnimAttribute = segmented_to_virtual((void *) anim->index);
     gCurrAnimData = segmented_to_virtual((void *) anim->values);
@@ -885,7 +885,7 @@ void geo_set_animation_globals(struct AnimInfo *node, s32 hasAnimation) {
     if (anim->animYTransDivisor == 0) {
         gCurrAnimTranslationMultiplier = 1.0f;
     } else {
-        gCurrAnimTranslationMultiplier = (f32) node->animYTrans / (f32) anim->animYTransDivisor;
+        gCurrAnimTranslationMultiplier = (f32) animInfo->animYTrans / (f32) anim->animYTransDivisor;
     }
 }
 

@@ -802,23 +802,24 @@ s32 retrieve_animation_index(s32 frame, u16 **attributes) {
  * whether it plays forwards or backwards, and whether it stops or loops at
  * the end etc.
  */
-s32 geo_update_animation_frame(struct AnimInfo *obj, s32 *accelAssist) {
+s32 geo_update_animation_frame(struct AnimInfo *animInfo, s32 *accelAssist) {
     s32 result;
-    struct Animation *anim = obj->curAnim;
+    struct Animation *anim = animInfo->curAnim;
 
-    if (obj->animTimer == gAreaUpdateCounter || anim->flags & ANIM_FLAG_NO_ACCEL) {
+    if (animInfo->animTimer == gAreaUpdateCounter || anim->flags & ANIM_FLAG_NO_ACCEL) {
         if (accelAssist != NULL) {
-            accelAssist[0] = obj->animFrameAccelAssist;
+            accelAssist[0] = animInfo->animFrameAccelAssist;
         }
 
-        return obj->animFrame;
+        return animInfo->animFrame;
     }
 
     if (anim->flags & ANIM_FLAG_FORWARD) {
-        if (obj->animAccel != 0) {
-            result = obj->animFrameAccelAssist - obj->animAccel;
+        if (animInfo->animAccel != 0) {
+            result = animInfo->animFrameAccelAssist - SCALE_PF(animInfo->animAccel);
         } else {
-            result = (obj->animFrame - 1) << 16;
+            // result = (animInfo->animFrame - 1) << 16;
+            result = animInfo->animFrameAccelAssist - SCALE_PF(0x10000);
         }
 
         if (GET_HIGH_S16_OF_32(result) < anim->loopStart) {
@@ -829,10 +830,11 @@ s32 geo_update_animation_frame(struct AnimInfo *obj, s32 *accelAssist) {
             }
         }
     } else {
-        if (obj->animAccel != 0) {
-            result = obj->animFrameAccelAssist + obj->animAccel;
+        if (animInfo->animAccel != 0) {
+            result = animInfo->animFrameAccelAssist + SCALE_PF(animInfo->animAccel);
         } else {
-            result = (obj->animFrame + 1) << 16;
+            // result = (animInfo->animFrame + 1) << 16;
+            result = animInfo->animFrameAccelAssist + SCALE_PF(0x10000);
         }
 
         if (GET_HIGH_S16_OF_32(result) >= anim->loopEnd) {
