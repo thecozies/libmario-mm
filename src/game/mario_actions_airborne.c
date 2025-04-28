@@ -219,10 +219,10 @@ void update_air_without_turn(struct MarioState *m) {
 
         //! Uncapped air speed. Net positive when moving forward.
         if (m->forwardVel > dragThreshold) {
-            m->forwardVel -= 1.0f;
+            m->forwardVel -= SCALE_PF(1.0f);
         }
         if (m->forwardVel < -16.0f) {
-            m->forwardVel += 2.0f;
+            m->forwardVel += SCALE_PF(2.0f);
         }
 
         m->slideVelX = m->forwardVel * sins(m->faceAngle[1]);
