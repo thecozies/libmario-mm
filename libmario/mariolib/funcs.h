@@ -151,6 +151,17 @@ extern FindCeilHandler_t *gCeilHandler;
 extern FindWallHandler_t *gWallHandler;
 extern FindWaterLevelHandler_t *gWaterLevelHandler;
 
+enum DamageProperties {
+    MARIO_DAMAGE_PROPERTIES_NONE = 0,
+    MARIO_DAMAGE_PROPERTIES_FIRE = 1 << 0,
+    MARIO_DAMAGE_PROPERTIES_FREEZE = 1 << 1,
+    MARIO_DAMAGE_PROPERTIES_SHOCK = 1 << 2,
+    MARIO_DAMAGE_PROPERTIES_LAVA = 1 << 3,
+    MARIO_DAMAGE_PROPERTIES_KNOCKBACK = 1 << 4,
+};
+
+void damage_mario(s32 damage, u32 damageProperties, f32 *sourcePos);
+
 void init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler);
 // void step_libmario(s32 buttons, f32 stickX, f32 stickY);
 void step_libmario(OSContPad *controllerData, s32 updateAnims);
@@ -165,6 +176,7 @@ void setMarioVelocity(f32 pos[3]);
 
 void getMarioPosition(f32 pos[3]);
 void setMarioPosition(f32 pos[3]);
+void displaceMarioPosition(f32 pos[3]);
 void getMarioVelocity(f32 vel[3]);
 void setMarioVelocity(f32 pos[3]);
 void getMarioRotation(s16 rot[3]);

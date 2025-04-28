@@ -737,9 +737,130 @@ void check_kick_or_punch_wall(struct MarioState *m) {
     }
 }
 
+static u32 sForwardKnockbackActions[][3] = {
+//    Soft                        Normal                 Hard
+    { ACT_SOFT_FORWARD_GROUND_KB, ACT_FORWARD_GROUND_KB, ACT_HARD_FORWARD_GROUND_KB }, // Ground
+    { ACT_FORWARD_AIR_KB,         ACT_FORWARD_AIR_KB,    ACT_HARD_FORWARD_AIR_KB    }, // Air
+    { ACT_FORWARD_WATER_KB,       ACT_FORWARD_WATER_KB,  ACT_FORWARD_WATER_KB       }, // Water
+};
+
+static u32 sBackwardKnockbackActions[][3] = {
+//    Soft                         Normal                  Hard
+    { ACT_SOFT_BACKWARD_GROUND_KB, ACT_BACKWARD_GROUND_KB, ACT_HARD_BACKWARD_GROUND_KB }, // Ground
+    { ACT_BACKWARD_AIR_KB,         ACT_BACKWARD_AIR_KB,    ACT_HARD_BACKWARD_AIR_KB    }, // Air
+    { ACT_BACKWARD_WATER_KB,       ACT_BACKWARD_WATER_KB,  ACT_BACKWARD_WATER_KB       }, // Water
+};
+
+static s16 angleToDamageObject = 0;
+
+u32 determine_knockback_action(struct MarioState *m, s32 damage) {
+    u32 bonkAction;
+
+    s16 terrainIndex = 0; // 1 = air, 2 = water, 0 = default
+    s16 strengthIndex = 0;
+
+    s16 angleToObject = angleToDamageObject;
+    s16 facingDYaw = angleToObject - m->faceAngle[1];
+    // s16 remainingHealth = m->health - SCALE_PF(0x40) * m->hurtCounter;
+
+    if (m->action & (ACT_FLAG_SWIMMING | ACT_FLAG_METAL_WATER)) {
+        terrainIndex = 2;
+    } else if (m->action & (ACT_FLAG_AIR | ACT_FLAG_ON_POLE | ACT_FLAG_HANGING)) {
+        terrainIndex = 1;
+    }
+
+    // if (remainingHealth < 0x100) {
+    if (FALSE) {
+        strengthIndex = 2;
+    } else if (damage >= 4) {
+        strengthIndex = 2;
+    } else if (damage >= 2) {
+        strengthIndex = 1;
+    }
+
+    m->faceAngle[1] = angleToObject;
+
+    if (terrainIndex == 2) {
+        if (m->forwardVel < 28.0f) {
+            mario_set_forward_vel(m, 28.0f);
+        }
+
+        if (m->pos[1] >= m->interactObj->oPosY) {
+            if (m->vel[1] < 20.0f) {
+                m->vel[1] = 20.0f;
+            }
+        } else {
+            if (m->vel[1] > 0.0f) {
+                m->vel[1] = 0.0f;
+            }
+        }
+    } else {
+        if (m->forwardVel < 16.0f) {
+            mario_set_forward_vel(m, 16.0f);
+        }
+    }
+
+    if (-0x4000 <= facingDYaw && facingDYaw <= 0x4000) {
+        m->forwardVel *= -1.0f;
+        bonkAction = sBackwardKnockbackActions[terrainIndex][strengthIndex];
+    } else {
+        m->faceAngle[1] += 0x8000;
+        bonkAction = sForwardKnockbackActions[terrainIndex][strengthIndex];
+    }
+
+    return bonkAction;
+}
+
+void damage_mario(s32 damage, u32 damageProperties, f32 *sourcePos) {
+    struct MarioState *m = gMarioState;
+    if ((m->action & ACT_FLAG_INVULNERABLE) || m->invincTimer != 0) {
+        return;
+    }
+
+    angleToDamageObject = Math_Atan2S(sourcePos[2] - m->pos[2], sourcePos[0] - m->pos[0]);
+    if (
+        !(m->action & (ACT_FLAG_SWIMMING | ACT_FLAG_METAL_WATER)) &&
+        (damageProperties & MARIO_DAMAGE_PROPERTIES_FIRE)
+    ) {
+        u32 burningAction = ACT_BURNING_JUMP;
+        m->marioObj->oMarioBurnTimer = 0;
+        play_sound(SOUND_MARIO_ON_FIRE, m->marioObj->header.gfx.cameraToObject);
+
+        if ((m->action & ACT_FLAG_AIR) && m->vel[1] <= 0.0f) {
+            burningAction = ACT_BURNING_FALL;
+        }
+        drop_and_set_mario_action(m, burningAction, 1);
+        return;
+    }
+
+    if (damageProperties & MARIO_DAMAGE_PROPERTIES_FREEZE) {
+        // drop_and_set_mario_action(m, ACT_FROZEN, 0);
+        // return;
+    }
+
+    if (damageProperties & MARIO_DAMAGE_PROPERTIES_SHOCK) {
+        drop_and_set_mario_action(m, ACT_SHOCKED, 0);
+        return;
+    }
+
+    if (damageProperties & MARIO_DAMAGE_PROPERTIES_LAVA) {
+        if (m->action != ACT_LAVA_BOOST) {
+            drop_and_set_mario_action(m, ACT_LAVA_BOOST, 0);
+            return;
+        }
+    }
+
+    if (damageProperties & MARIO_DAMAGE_PROPERTIES_KNOCKBACK) {
+        drop_and_set_mario_action(m, determine_knockback_action(m, damage), damage);
+    }
+}
+
 void mario_process_interactions(struct MarioState *m) {
     check_kick_or_punch_wall(m);
     m->flags &= ~MARIO_PUNCHING & ~MARIO_KICKING & ~MARIO_TRIPPING;
+    if (m->invincTimer > 0) {
+        m->invincTimer--;
+    }
 }
 
 f32 find_room_floor(f32 x, f32 y, f32 z, struct Surface **pfloor) {
@@ -949,6 +1070,12 @@ void setMarioPosition(f32 pos[3]) {
     gMarioState->pos[0] = pos[0];
     gMarioState->pos[1] = pos[1];
     gMarioState->pos[2] = pos[2];
+}
+
+void displaceMarioPosition(f32 pos[3]) {
+    gMarioState->pos[0] += pos[0];
+    gMarioState->pos[1] += pos[1];
+    gMarioState->pos[2] += pos[2];
 }
 
 void getMarioVelocity(f32 vel[3]) {
