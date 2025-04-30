@@ -21,6 +21,12 @@
 #include "config.h"
 #include "config/config_world.h"
 
+#define G_EX_TAGGING 1
+
+#if G_EX_TAGGING
+#include "../../include/rt64_extended_gbi.h"
+#endif
+
 /**
  * This file contains the code that processes the scene graph for rendering.
  * The scene graph is responsible for drawing everything except the HUD / text boxes.
@@ -75,6 +81,11 @@ s16 gCurrAnimFrame;
 f32 gCurrAnimTranslationMultiplier;
 u16 *gCurrAnimAttribute;
 s16 *gCurrAnimData;
+
+#if G_EX_TAGGING
+u32 gCurrMatrixGroupId;
+u32 gCurrActorId = 0xDEADBEEF;
+#endif
 
 struct AllocOnlyPool *gDisplayListHeap;
 
@@ -350,6 +361,9 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
 #endif
             // Iterate through all the displaylists on the current layer.
             while (currList != NULL) {
+                if (currList->matrixGroupId != G_EX_ID_AUTO) {
+                    gEXMatrixGroupDecomposed(dlHead++, currList->matrixGroupId, G_EX_PUSH, 0, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE);
+                }
                 // Add the display list's transformation to the master list.
                 gSPMatrix(dlHead++, VIRTUAL_TO_PHYSICAL(currList->transform),
                           (G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH));
@@ -366,6 +380,11 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
 #else
                 // Add the current display list to the master list.
                 gSPDisplayList(dlHead++, currList->displayList);
+#endif
+#if G_EX_TAGGING
+                if (currList->matrixGroupId != G_EX_ID_AUTO) {
+                    gEXPopMatrixGroup(dlHead++, 0);
+                }
 #endif
                 // Move to the next DisplayListNode.
                 currList = currList->next;
@@ -430,6 +449,7 @@ void geo_append_display_list(void *displayList, s32 layer) {
 
         listNode->transform = gMatStackFixed[gMatStackIndex];
         listNode->displayList = displayList;
+        listNode->matrixGroupId = gCurrMatrixGroupId;
         listNode->next = NULL;
         if (gCurGraphNodeMasterList->listHeads[ucode][layer] == NULL) {
             gCurGraphNodeMasterList->listHeads[ucode][layer] = listNode;
@@ -462,6 +482,7 @@ static void append_dl_and_return(struct GraphNodeDisplayList *node) {
  */
 void geo_process_master_list(struct GraphNodeMasterList *node) {
     s32 ucode, layer;
+    gCurrMatrixGroupId = G_EX_ID_AUTO;
 
     // recomp_printf("geo_process_master_list\n");
     if (gCurGraphNodeMasterList == NULL && node->node.children != NULL) {
@@ -755,6 +776,14 @@ void geo_process_background(struct GraphNodeBackground *node) {
 void geo_process_animated_part(struct GraphNodeAnimatedPart *node) {
     Vec3s rotation = { 0, 0, 0 };
     Vec3f translation = { node->translation[0], node->translation[1], node->translation[2] };
+#if G_EX_TAGGING
+    if (gCurrMatrixGroupId == G_EX_ID_AUTO) {
+        gCurrMatrixGroupId = gCurrActorId;
+    }
+    else {
+        gCurrMatrixGroupId++;
+    }
+#endif
 
     if (gCurrAnimType == ANIM_TYPE_TRANSLATION) {
         translation[0] += gCurrAnimData[retrieve_animation_index(gCurrAnimFrame, &gCurrAnimAttribute)]

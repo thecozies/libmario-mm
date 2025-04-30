@@ -1031,7 +1031,9 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
 }
 
 extern struct AllocOnlyPool *gDisplayListHeap;
-Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale) {
+
+Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale, u32 transform_id) {
+    gCurrActorId = transform_id;
     select_gfx_pool();
     gDisplayListHeadOpa = *opa;
     gDisplayListHeadXlu = *xlu;

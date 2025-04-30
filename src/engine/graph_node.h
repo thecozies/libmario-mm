@@ -178,6 +178,7 @@ struct GraphNodePerspective {
 struct DisplayListNode {
     Mtx *transform;
     void *displayList;
+    u32 matrixGroupId;
     struct DisplayListNode *next;
 };
 

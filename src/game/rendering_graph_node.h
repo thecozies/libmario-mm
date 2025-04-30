@@ -16,6 +16,7 @@ extern Gfx *gDisplayListHeadXlu;
 extern s16 gMatStackIndex;
 extern Mtx *gMatStackFixed[];
 extern Mat4 gMatStack[];
+extern u32 gCurrActorId;
 
 #define gCurGraphNodeObjectNode ((struct Object *)gCurGraphNodeObject)
 extern u16 gAreaUpdateCounter;

@@ -165,7 +165,7 @@ void damage_mario(s32 damage, u32 damageProperties, f32 *sourcePos);
 void init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler);
 // void step_libmario(s32 buttons, f32 stickX, f32 stickY);
 void step_libmario(OSContPad *controllerData, s32 updateAnims);
-Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale);
+Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale, u32 transform_id);
 extern struct MarioState *gMarioState;
 u32 getMarioAction(void);
 void setMarioRelativeCamYaw(s16 yaw);
