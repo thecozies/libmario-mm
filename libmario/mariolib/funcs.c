@@ -998,12 +998,6 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     if (gControllers[0].buttonPressed & R_JPAD) {
         gMarioState->flags ^= MARIO_WING_CAP;
     }
-    if (gControllers[0].buttonPressed & U_JPAD) {
-        gMarioState->flags ^= MARIO_CAP_ON_HEAD;
-    }
-    if (gControllers[0].buttonPressed & D_JPAD) {
-        gMarioState->flags ^= MARIO_CAP_IN_HAND;
-    }
 
     gMarioState->capTimer = 0xFFFF;
     gMarioState->health = 0x880;
