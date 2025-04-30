@@ -30,6 +30,16 @@ CFLAGS = $(SHARING) -target mips -mips2 -mabi=32 $(OPT_FLAGS) -G0 -mno-abicalls 
 
 INCLUDES = -I.. -I../include -I../include/n64 -I../include/libc -I../src/engine -I../src/game -I../src -Ism64
 
+BUILD_DIR := build
+BUILD_DIRS := $(BUILD_DIR) $(BUILD_DIR)/src $(BUILD_DIR)/libmario
+
+$(BUILD_DIRS):
+ifeq ($(OS),Windows_NT)
+	mkdir $(subst /,\,$@)
+else
+	mkdir -p $@
+endif
+
 $(shell mkdir -p build build/libmario build/src)
 
 clean:
@@ -47,5 +57,5 @@ build/src/%.o: ../src/game/%.c
 build/src/%.o: ../src/engine/%.c
 	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) $< -MMD -MF $(@:.o=.d)  -c -o $@
 
-libmario.o: $(ALL_OUTPUT_FILES)
+libmario.o: $(ALL_OUTPUT_FILES) | $(BUILD_DIRS)
 	$(LD) -r -o $@ $(ALL_OUTPUT_FILES) -Map=output.map
