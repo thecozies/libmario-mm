@@ -1793,6 +1793,14 @@ s32 execute_mario_action(UNUSED struct Object *obj) {
         queue_rumble_particles(gMarioState);
 #endif
 
+        if (gMarioState->particleFlags & PARTICLE_DUST) {
+            spawn_dust_particles = TRUE;
+        }
+
+        if (gMarioState->particleFlags & PARTICLE_MIST_CIRCLE) {
+            spawn_cloud_ring_particles = TRUE;
+        }
+
         return gMarioState->particleFlags;
     }
 
