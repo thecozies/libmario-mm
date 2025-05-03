@@ -181,4 +181,4 @@ void getMarioVelocity(f32 vel[3]);
 void setMarioVelocity(f32 pos[3]);
 void getMarioRotation(s16 rot[3]);
 void setMarioRotation(s16 rot[3]);
-void reset_mario_state(void);
+void reset_mario_state(u32 action);
