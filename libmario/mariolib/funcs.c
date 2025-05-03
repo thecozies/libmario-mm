@@ -929,8 +929,8 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     // recomp_printf("init_libmario: geo_obj_init_spawninfo\n");
 }
 
-void reset_mario_state(void) {
-    gMarioState->action = ACT_FREEFALL;
+void reset_mario_state(u32 action) {
+    gMarioState->action = action;
     gMarioState->forwardVel = 0.0f;
     gMarioState->vel[0] = 0.0f;
     gMarioState->vel[1] = 0.0f;
