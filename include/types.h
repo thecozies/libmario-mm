@@ -523,4 +523,7 @@ struct GfxPool {
 
 extern int recomp_printf(const char* fmt, ...);
 
+extern s32 spawn_dust_particles;
+extern s32 spawn_cloud_ring_particles;
+
 #endif // TYPES_H
