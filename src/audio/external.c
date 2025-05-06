@@ -388,7 +388,7 @@ extern void func_802ad74c(u32 bits, u32 arg);
 extern void func_802ad770(u32 bits, s8 arg);
 
 static void update_background_music_after_sound(u8 bank, u8 soundIndex);
-static void update_game_sound(void);
+// void update_game_sound(void);
 static void fade_channel_volume_scale(u8 player, u8 channelId, u8 targetScale, u16 fadeTimer);
 void process_level_music_dynamics(void);
 static u8 begin_background_music_fade(u16 fadeDuration);
@@ -585,7 +585,7 @@ void func_eu_802e9bec(s32 player, s32 channel, s32 arg2) {
  */
 struct SPTask *create_next_audio_frame_task(void) {
     u32 samplesRemainingInAI;
-    s32 writtenCmds;
+    s32 writtenCmds = 0;
     s32 index;
     OSTask_t *task;
     s32 oldDmaCount;
@@ -1171,7 +1171,7 @@ void audio_signal_game_loop_tick(void) {
 /**
  * Called from threads: thread4_sound, thread5_game_loop (EU and SH only)
  */
-static void update_game_sound(void) {
+void update_game_sound(void) {
     u8 soundStatus;
     u8 i;
     u8 soundId;

@@ -11,6 +11,10 @@
 #include "game/vc_check.h"
 #include "string.h"
 
+#ifndef VERSION_US
+#define VERSION_US
+#endif
+
 struct PoolSplit {
     u32 wantSeq;
     u32 wantBank;
@@ -1177,11 +1181,11 @@ void audio_reset_session(struct AudioSessionSettings *preset, s32 presetId) {
         init_reverb_us(presetId);
         bzero(&gAiBuffers[0][0], (AIBUFFER_LEN * NUMAIBUFFERS));
         gAudioFrameCount = 0;
-        if (!gIsVC) {
-            while (gAudioFrameCount < 1) {
-                // spin
-            }
-        }
+        // if (!gIsVC) {
+        //     while (gAudioFrameCount < 1) {
+        //         // spin
+        //     }
+        // }
         bzero(&gAiBuffers[0][0], (AIBUFFER_LEN * NUMAIBUFFERS));
         return;
     }

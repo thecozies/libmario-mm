@@ -182,3 +182,4 @@ void setMarioVelocity(f32 pos[3]);
 void getMarioRotation(s16 rot[3]);
 void setMarioRotation(s16 rot[3]);
 void reset_mario_state(u32 action);
+u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, s32 numSamplesPerFrame);
