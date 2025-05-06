@@ -13,6 +13,8 @@
 #include "rendering_graph_node.h"
 #include "graph_node.h"
 #include "model_data.h"
+#include "external.h"
+#include "data.h"
 
 #include "anims.c"
 
@@ -196,29 +198,6 @@ void set_cutscene_message(s16 xOffset, s16 yOffset, s16 msgIndex, s16 msgDuratio
 s32 save_file_get_total_star_count(s32 fileIndex, s32 minCourse, s32 maxCourse) { return 0; }
 void set_menu_mode(s16 mode) {}
 
-void play_music(u8 player, u16 seqArgs, u16 fadeTimer) {}
-void raise_background_noise(s32 a) {}
-void play_toads_jingle(void) {}
-void play_menu_sounds(s16 soundMenuFlags) {}
-void stop_sound(u32 soundBits, f32 *pos) {}
-void *play_sound(s32 soundBits, f32 *pos) {}
-void set_sound_moving_speed(u8 bank, u8 speed) {}
-void play_infinite_stairs_music() {}
-void lower_background_noise(s32 a) {}
-void seq_player_lower_volume(u8 player, u16 fadeDuration, u8 percentage) {}
-void seq_player_unlower_volume(u8 player, u16 fadeDuration) {}
-void play_cutscene_music(u16 seqArgs) {}
-void play_course_clear(void) {}
-void sound_banks_enable(UNUSED u8 player, u16 bankMask) {}
-void disable_background_sound(void) {}
-void enable_background_sound(void) {}
-void play_peachs_jingle(void) {}
-void cur_obj_play_sound_2(s32 soundMagic) {}
-void play_shell_music(void) {}
-void stop_shell_music(void) {}
-void play_cap_music(void) {}
-void stop_cap_music(void) {}
-void fadeout_cap_music(void) {}
 
 Gfx *gdm_gettestdl(s32 id) { return NULL; }
 void gd_vblank(void) {}
@@ -243,9 +222,13 @@ void mario_blow_off_cap(struct MarioState *m, f32 capSpeed) {}
 
 void spawn_default_star(f32 sp20, f32 sp24, f32 sp28) {}
 void spawn_mist_particles_variable(s32 count, s32 offsetY, f32 size) {}
-void create_sound_spawner(s32 soundMagic) {}
+
 void spawn_triangle_break_particles(s16 numTris, s16 triModel, f32 triSize, s16 triAnimState) {}
 struct Object *create_object(const BehaviorScript *bhvScript) { return NULL; }
+
+s8 gResetTimer = 0;
+s8 gAudioEnabled = TRUE;
+u8 gIsVC = FALSE;
 
 s16 gFindFloorIncludeSurfaceIntangible = FALSE;
 s8 gDebugLevelSelect = FALSE;
@@ -285,7 +268,7 @@ u8 gWarpTransGreen = 0;
 u8 gWarpTransBlue = 0;
 s16 gCurrSaveFileNum = 1;
 s16 gCurrLevelNum = LEVEL_MIN;
-u32 gAudioRandom = 0;
+
 s32 gDialogResponse = 0;
 
 struct Camera *gCamera;
@@ -385,9 +368,6 @@ struct ObjectNode gObjectListArray[16];
 struct ObjectNode gFreeObjectList;
 struct ObjectNode *gObjectLists = gObjectListArray;
 s16 gPrevFrameObjectCount = 0;
-
-f32 gGlobalSoundSource[3] = { 0.0f, 0.0f, 0.0f };
-
 
 // s16 gCheckingSurfaceCollisionsForCamera;
 // s16 gFindFloorIncludeSurfaceIntangible;
@@ -950,7 +930,18 @@ s32 mario_interact_door(f32 pos[3], s16 rot[3], s32 shouldPushDoor) {
     return FALSE;
 }
 
+#ifdef ENABLE_SM64_RSP_AUDIO
+static s32 initSound = FALSE;
+#else
+static s32 initSound = TRUE;
+#endif // #ifdef ENABLE_SM64_RSP_AUDIO
+
 EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler) {
+    if (!initSound) {
+        audio_init();
+        sound_init();
+        initSound = TRUE;
+    }
     gFloorHandler = floorHandler;
     gCeilHandler = ceilHandler;
     gWallHandler = wallHandler;
@@ -1054,6 +1045,9 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
     struct GraphNodeScale scaleNode;
     handFootScalerNode.fnNode.node.next = (struct GraphNode*)&scaleNode;
     gAreaUpdateCounter++;
+    if (gResetTimer > 0 && gResetTimer < 100) {
+        gResetTimer++;
+    }
 
     gControllers[0].rawStickX = controllerData->stick_x;
     gControllers[0].rawStickY = controllerData->stick_y;
@@ -1098,6 +1092,8 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
 extern struct AllocOnlyPool *gDisplayListHeap;
 
 Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale, u32 transform_id) {
+    audio_signal_game_loop_tick();
+
     gCurrActorId = transform_id;
     select_gfx_pool();
     gDisplayListHeadOpa = *opa;
@@ -1248,4 +1244,23 @@ EXPORT void ADDCALL getMarioAnimData(struct AnimData *out) {
             }
         }
     }
+}
+
+extern s32 sGameLoopTicked;
+u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, s32 numSamplesPerFrame) {
+    if (!initSound) {
+        return abiCmdStart;
+    }
+    
+    gAudioFrameCount++;
+    if (sGameLoopTicked != 0) {
+        update_game_sound();
+        sGameLoopTicked = 0;
+    }
+
+    recomp_printf("synthesis_execute_wrap A: %p\n", abiCmdStart);
+    u64* curCmd = synthesis_execute((u64 *)abiCmdStart, numAbiCmds, aiBufStart, numSamplesPerFrame);
+    recomp_printf("synthesis_execute_wrap B: %p\n", curCmd);
+    gAudioRandom = ((gAudioRandom + gAudioFrameCount) * gAudioFrameCount);
+    return curCmd;
 }

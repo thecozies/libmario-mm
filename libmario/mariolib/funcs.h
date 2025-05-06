@@ -195,3 +195,4 @@ void set_mario_interact_object(InteractObjectType interactObjectType, f32 pos[3]
 
 /* Returns FALSE (0) if mario can't open a door right now */
 s32 mario_interact_door(f32 pos[3], s16 rot[3], s32 shouldPushDoor);
+u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, s32 numSamplesPerFrame);

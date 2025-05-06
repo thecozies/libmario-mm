@@ -9,6 +9,12 @@
 #include "seqplayer.h"
 #include "game/puppyprint.h"
 
+
+#ifndef VERSION_US
+#define VERSION_US
+#endif
+
+
 #define ALIGN16(val) (((val) + 0xF) & ~0xF)
 
 struct SharedDma {
@@ -102,15 +108,17 @@ extern u8 gBankSetsData[];  // bank_sets.s
 
 ALSeqFile *get_audio_file_header(s32 poolIdx);
 
+
 /**
  * Performs an immediate DMA copy
  */
 void audio_dma_copy_immediate(uintptr_t devAddr, void *vAddr, size_t nbytes) {
     eu_stubbed_printf_3("Romcopy %x -> %x ,size %x\n", devAddr, vAddr, nbytes);
-    osInvalDCache(vAddr, nbytes);
-    osPiStartDma(&gAudioDmaIoMesg, OS_MESG_PRI_HIGH, OS_READ, devAddr, vAddr, nbytes,
-                 &gAudioDmaMesgQueue);
-    osRecvMesg(&gAudioDmaMesgQueue, NULL, OS_MESG_BLOCK);
+    // osInvalDCache(vAddr, nbytes);
+    // osPiStartDma(&gAudioDmaIoMesg, OS_MESG_PRI_HIGH, OS_READ, devAddr, vAddr, nbytes,
+    //              &gAudioDmaMesgQueue);
+    // osRecvMesg(&gAudioDmaMesgQueue, NULL, OS_MESG_BLOCK);
+    bcopy((void *) devAddr, vAddr, nbytes);
     eu_stubbed_printf_0("Romcopyend\n");
 }
 
@@ -140,8 +148,9 @@ void audio_dma_copy_async(uintptr_t devAddr, void *vAddr, size_t nbytes, OSMesgQ
 #if PUPPYPRINT_DEBUG
     OSTime first = osGetTime();
 #endif
-    osInvalDCache(vAddr, nbytes);
-    osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, devAddr, vAddr, nbytes, queue);
+    // osInvalDCache(vAddr, nbytes);
+    // osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, devAddr, vAddr, nbytes, queue);
+    bcopy((void *) devAddr, vAddr, nbytes);
 #if PUPPYPRINT_DEBUG
     dmaAudioTime[perfIteration] += (osGetTime() - first);
 #endif
@@ -157,8 +166,9 @@ void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remai
 #endif
     ssize_t transfer = MIN(*remaining, 0x1000);
     *remaining -= transfer;
-    osInvalDCache(*vAddr, transfer);
-    osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, *devAddr, *vAddr, transfer, queue);
+    bcopy((void *) *devAddr, *vAddr, transfer);
+    // osInvalDCache(*vAddr, transfer);
+    // osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, *devAddr, *vAddr, transfer, queue);
     *devAddr += transfer;
     *vAddr += transfer;
 #if PUPPYPRINT_DEBUG
@@ -316,8 +326,9 @@ void *dma_sample_data(uintptr_t devAddr, u32 size, s32 arg2, u8 *dmaIndexRef) {
     return (devAddr - dmaDevAddr) + dma->buffer;
 #else
     gCurrAudioFrameDmaCount++;
-    osPiStartDma(&gCurrAudioFrameDmaIoMesgBufs[gCurrAudioFrameDmaCount - 1], OS_MESG_PRI_NORMAL,
-                 OS_READ, dmaDevAddr, dma->buffer, transfer, &gCurrAudioFrameDmaQueue);
+    // osPiStartDma(&gCurrAudioFrameDmaIoMesgBufs[gCurrAudioFrameDmaCount - 1], OS_MESG_PRI_NORMAL,
+    //              OS_READ, dmaDevAddr, dma->buffer, transfer, &gCurrAudioFrameDmaQueue);
+    bcopy((void *) dmaDevAddr, dma->buffer, transfer);
     *dmaIndexRef = dmaIndex;
 #if PUPPYPRINT_DEBUG
     dmaAudioTime[perfIteration] += (osGetTime() - first);
@@ -858,6 +869,19 @@ void load_sequence_internal(u32 player, u32 seqId, s32 loadAsync) {
     seqPlayer->scriptState.pc = sequenceData;
 }
 
+void alSeqFileNew(ALSeqFile *file, u8 *base)
+{
+    s32 offset = (s32) base;
+    s32 i;
+    
+    /*
+     * patch the file so that offsets are pointers
+     */
+    for (i = 0; i < file->seqCount; i++) {
+        file->seqArray[i].offset = (u8 *)((u8 *)file->seqArray[i].offset + offset);
+    }
+}
+
 // (void) must be omitted from parameters to fix stack with -framepointer
 void audio_init() {
 #if defined(VERSION_JP) || defined(VERSION_US) || defined(VERSION_EU)
@@ -875,30 +899,30 @@ void audio_init() {
         ((u64 *) gAudioHeap)[i] = 0;
     }
 
-#ifdef TARGET_N64
-    // It seems boot.s doesn't clear the .bss area for audio, so do it here.
-    i = 0;
-    s32 lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
-    u64 *ptr64 = &gAudioGlobalsStartMarker;
-    for (k = lim3; k >= 0; k--) {
-        ptr64[i] = 0;
-        i++;
-    }
-#endif
+// #ifdef TARGET_N64
+//     // It seems boot.s doesn't clear the .bss area for audio, so do it here.
+//     i = 0;
+//     s32 lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
+//     u64 *ptr64 = &gAudioGlobalsStartMarker;
+//     for (k = lim3; k >= 0; k--) {
+//         ptr64[i] = 0;
+//         i++;
+//     }
+// #endif
 
 #else
     for (i = 0; i < gAudioHeapSize / 8; i++) {
         ((u64 *) gAudioHeap)[i] = 0;
     }
 
-#ifdef TARGET_N64
-    // It seems boot.s doesn't clear the .bss area for audio, so do it here.
-    s32 lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
-    u64 *ptr64 = &gAudioGlobalsStartMarker;
-    for (k = lim3; k >= 0; k--) {
-        *ptr64++ = 0;
-    }
-#endif
+// #ifdef TARGET_N64
+//     // It seems boot.s doesn't clear the .bss area for audio, so do it here.
+//     s32 lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
+//     u64 *ptr64 = &gAudioGlobalsStartMarker;
+//     for (k = lim3; k >= 0; k--) {
+//         *ptr64++ = 0;
+//     }
+// #endif
 
     //D_EU_802298D0 = 20.03042f;
     D_EU_802298D0 = 16.713f;
@@ -1002,14 +1026,14 @@ void audio_init() {
     gAudioLoadLock = AUDIO_LOCK_NOT_LOADING;
     // Should probably contain the sizes of the data banks, but those aren't
     // easily accessible from here.
-    osSyncPrintf("---------- Init Completed. ------------\n");
-    osSyncPrintf(" Syndrv    :[%6d]\n", gSoundDataRaw - gSoundDataADSR); // gSoundDataADSR
+    recomp_printf("---------- Init Completed. ------------\n");
+    recomp_printf(" Syndrv    :[%6d]\n", gSoundDataRaw - gSoundDataADSR); // gSoundDataADSR
 #ifndef VERSION_SH
-    osSyncPrintf(" Seqdrv    :[%6d]\n", gBankSetsData - gMusicData); // gMusicData
+    recomp_printf(" Seqdrv    :[%6d]\n", gBankSetsData - gMusicData); // gMusicData
 #else
-    osSyncPrintf(" Seqdrv    :[%6d]\n", _assetsSegmentRomEnd - gMusicData); // gMusicData
+    recomp_printf(" Seqdrv    :[%6d]\n", _assetsSegmentRomEnd - gMusicData); // gMusicData
 #endif
-    osSyncPrintf(" audiodata :[%6d]\n", gMusicData - gSoundDataRaw); // gSoundDataRaw
-    osSyncPrintf("---------------------------------------\n");
+    recomp_printf(" audiodata :[%6d]\n", gMusicData - gSoundDataRaw); // gSoundDataRaw
+    recomp_printf("---------------------------------------\n");
 }
 #endif
