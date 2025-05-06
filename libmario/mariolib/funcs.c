@@ -753,7 +753,7 @@ static u32 sBackwardKnockbackActions[][3] = {
 
 static s16 angleToDamageObject = 0;
 
-u32 determine_knockback_action(struct MarioState *m, s32 damage) {
+u32 determine_knockback_action(struct MarioState *m, s32 damage, f32 *sourcePos) {
     u32 bonkAction;
 
     s16 terrainIndex = 0; // 1 = air, 2 = water, 0 = default
@@ -785,7 +785,7 @@ u32 determine_knockback_action(struct MarioState *m, s32 damage) {
             mario_set_forward_vel(m, 28.0f);
         }
 
-        if (m->pos[1] >= m->interactObj->oPosY) {
+        if (m->pos[1] >= sourcePos[1]) {
             if (m->vel[1] < 20.0f) {
                 m->vel[1] = 20.0f;
             }
@@ -851,7 +851,7 @@ void damage_mario(s32 damage, u32 damageProperties, f32 *sourcePos) {
     }
 
     if (damageProperties & MARIO_DAMAGE_PROPERTIES_KNOCKBACK) {
-        drop_and_set_mario_action(m, determine_knockback_action(m, damage), damage);
+        drop_and_set_mario_action(m, determine_knockback_action(m, damage, sourcePos), damage);
     }
 }
 
