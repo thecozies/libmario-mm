@@ -160,6 +160,13 @@ enum DamageProperties {
     MARIO_DAMAGE_PROPERTIES_KNOCKBACK = 1 << 4,
 };
 
+typedef enum {
+    INTERACT_OBJ_NONE = 0,
+    INTERACT_OBJ_HELD,
+    INTERACT_OBJ_USED,
+    INTERACT_OBJ_RIDDEN,
+} InteractObjectType;
+
 void damage_mario(s32 damage, u32 damageProperties, f32 *sourcePos);
 
 void init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler);
@@ -182,3 +189,8 @@ void setMarioVelocity(f32 pos[3]);
 void getMarioRotation(s16 rot[3]);
 void setMarioRotation(s16 rot[3]);
 void reset_mario_state(u32 action);
+
+void set_mario_interact_object(InteractObjectType interactObjectType, f32 pos[3], s16 rot[3], f32 radius, f32 height);
+
+/* Returns FALSE (0) if mario can't open a door right now */
+s32 mario_interact_door(f32 pos[3], s16 rot[3], s32 shouldPushDoor);

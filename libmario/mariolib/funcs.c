@@ -263,6 +263,12 @@ struct HudDisplay gHudDisplay;
 struct MarioState *gMarioState = &gMarioStates[0];
 struct Object MarioObjectInstance;
 struct Object *gMarioObject = &MarioObjectInstance;
+
+struct Object marioHeldObject = { 0 };
+struct Object marioInteractObject = { 0 };
+struct Object marioUsedObject = { 0 };
+struct Object marioRiddenObject = { 0 };
+
 struct SpawnInfo gPlayerSpawnInfos[1];
 struct SpawnInfo *gMarioSpawnInfo = &gPlayerSpawnInfos[0];
 struct Area *gAreas = gAreaData;
@@ -884,6 +890,66 @@ void resolve_and_return_wall_collisions(Vec3f pos, f32 offset, f32 radius, struc
     pos[2] = collisionData->z;
 }
 
+void set_mario_interact_object(InteractObjectType interactObjectType, f32 pos[3], s16 rot[3], f32 radius, f32 height) {
+    static struct Object *objPtrs[] = {
+        &marioInteractObject,
+        &marioHeldObject,
+        &marioUsedObject,
+        &marioRiddenObject,
+    };
+
+    struct Object *obj = objPtrs[interactObjectType];
+    gMarioState->interactObj = obj;
+
+    switch (interactObjectType) {
+        case INTERACT_OBJ_NONE:
+        default:
+            break;
+        case INTERACT_OBJ_HELD:
+            gMarioState->heldObj = obj;
+            break;
+        case INTERACT_OBJ_USED:
+            gMarioState->usedObj = obj;
+            break;
+        case INTERACT_OBJ_RIDDEN:
+            gMarioState->riddenObj = obj;
+            break;
+    }
+
+    vec3f_copy(obj->header.gfx.pos, pos);
+    vec3s_copy(obj->header.gfx.angle, rot);
+    obj->oPosX = pos[0];
+    obj->oPosY = pos[1];
+    obj->oPosZ = pos[2];
+    vec3s_to_vec3i(&obj->oFaceAngleVec, rot);
+    vec3s_to_vec3i(&obj->oMoveAngleVec, rot);
+    obj->hitboxRadius = radius;
+    obj->hitboxHeight = height;
+    obj->oBehParams = 0;
+    obj->oBehParams2ndByte = 0;
+    obj->oInteractStatus = 0;
+    // object->oFloorHeight = find_floor(object->oPosX, object->oPosY, object->oPosZ, &object->oFloor);
+}
+
+s32 mario_interact_door(f32 pos[3], s16 rot[3], s32 shouldPushDoor) {
+    struct MarioState *m = gMarioState;
+
+    if (m->action & ACT_FLAG_ALLOW_FIRST_PERSON) {
+        set_mario_interact_object(INTERACT_OBJ_USED, pos, rot, 50.0f, 200.0f);
+
+        u32 actionArg = shouldPushDoor ? WARP_FLAG_DOOR_FLIP_MARIO : WARP_FLAG_DOOR_PULLED;
+        u32 enterDoorAction;
+        if (actionArg & WARP_FLAG_DOOR_PULLED) {
+            enterDoorAction = ACT_PULLING_DOOR;
+        } else {
+            enterDoorAction = ACT_PUSHING_DOOR;
+        }
+
+        return set_mario_action(m, enterDoorAction, actionArg);
+    }
+    return FALSE;
+}
+
 EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler) {
     gFloorHandler = floorHandler;
     gCeilHandler = ceilHandler;
@@ -896,6 +962,11 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     gMarioState->pos[2] = 0.0f;
     gMarioState->action = ACT_FREEFALL;
     gMarioState->marioObj = gMarioObject;
+    gMarioState->interactObj = gMarioObject;
+    gMarioState->heldObj = NULL;
+    gMarioState->usedObj = NULL;
+    gMarioState->riddenObj = NULL;
+
     gMarioState->marioBodyState = &gBodyStates[0];
     gMarioState->controller = &gControllers[0];
     gMarioState->area = &gAreaData[0];
