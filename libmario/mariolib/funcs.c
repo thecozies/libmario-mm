@@ -1075,6 +1075,7 @@ EXPORT void ADDCALL step_libmario(OSContPad *controllerData, s32 updateAnims) {
 
     surfacesUsed = 0;
 
+    gMarioState->input = INPUT_NONZERO_ANALOG;
     execute_mario_action(gCurrentObject);
     copy_mario_state_to_object();
 
