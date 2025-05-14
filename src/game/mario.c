@@ -1245,6 +1245,8 @@ void update_mario_button_inputs(struct MarioState *m) {
     }
 }
 
+extern s32 mm_in_cutscene;
+
 /**
  * Updates the joystick intended magnitude.
  */
@@ -1256,6 +1258,10 @@ void update_mario_joystick_inputs(struct MarioState *m) {
         m->intendedMag = mag / 2.0f;
     } else {
         m->intendedMag = mag / 8.0f;
+    }
+
+    if (mm_in_cutscene == 1) {
+        m->input |= INPUT_NONZERO_ANALOG;
     }
 
     if (m->intendedMag > 0.0f) {
