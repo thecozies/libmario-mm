@@ -866,9 +866,9 @@ void resolve_and_return_wall_collisions(Vec3f pos, f32 offset, f32 radius, struc
 
 
 #ifdef ENABLE_SM64_RSP_AUDIO
-static s32 initSound = FALSE;
+s32 initSound = FALSE;
 #else
-static s32 initSound = TRUE;
+s32 initSound = TRUE;
 #endif // #ifdef ENABLE_SM64_RSP_AUDIO
 
 EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHandler_t *ceilHandler, FindWallHandler_t *wallHandler, FindWaterLevelHandler_t *waterHandler) {
@@ -1174,23 +1174,4 @@ EXPORT void ADDCALL getMarioAnimData(struct AnimData *out) {
             }
         }
     }
-}
-
-extern s32 sGameLoopTicked;
-u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, s32 numSamplesPerFrame) {
-    if (!initSound) {
-        return abiCmdStart;
-    }
-    
-    gAudioFrameCount++;
-    if (sGameLoopTicked != 0) {
-        update_game_sound();
-        sGameLoopTicked = 0;
-    }
-
-    recomp_printf("synthesis_execute_wrap A: %p\n", abiCmdStart);
-    u64* curCmd = synthesis_execute((u64 *)abiCmdStart, numAbiCmds, aiBufStart, numSamplesPerFrame);
-    recomp_printf("synthesis_execute_wrap B: %p\n", curCmd);
-    gAudioRandom = ((gAudioRandom + gAudioFrameCount) * gAudioFrameCount);
-    return curCmd;
 }

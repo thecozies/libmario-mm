@@ -121,3 +121,6 @@ lib/libs2d_engine.a
 # Python
 __pycache__
 *.pyc
+
+/libmario/mariolib/sounds/*
+/libmario/mariolib/sounds_sh/*
