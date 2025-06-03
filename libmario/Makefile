@@ -1,4 +1,5 @@
-LIBMARIO_INPUT_FILES := ./mariolib/funcs.c ./mariolib/model_data.c
+LIBMARIO_INPUT_FILES := ./mariolib/funcs.c ./mariolib/audio.c ./mariolib/model_data.c ./mariolib/sound_data.c
+# LIBMARIO_INPUT_FILES := ./mariolib/funcs.c ./mariolib/audio.c ./mariolib/model_data.c
 LIBMARIO_DECOMP_INPUT_FILES := ../src/game/mario_actions_airborne.c ../src/game/mario_actions_automatic.c ../src/game/mario_actions_cutscene.c \
 	../src/game/mario_actions_moving.c ../src/game/mario_actions_object.c ../src/game/mario_actions_stationary.c ../src/game/mario_actions_submerged.c \
 	../src/game/mario_misc.c ../src/game/mario_step.c ../src/game/mario.c ../src/engine/math_util.c ../src/engine/geo_layout.c  ../src/engine/graph_node.c ../src/game/object_helpers.c ../src/game/rendering_graph_node.c \
@@ -10,7 +11,11 @@ ALL_LIBMARIO_INPUT_FILES = $(LIBMARIO_INPUT_FILES) $(LIBMARIO_DECOMP_INPUT_FILES
 LIBMARIO_OUTPUT_FILES := $(foreach f,$(LIBMARIO_INPUT_FILES:.c=.o),build/libmario/$(notdir $f))
 DECOMP_OUTPUT_FILES := $(foreach f,$(LIBMARIO_DECOMP_INPUT_FILES:.c=.o),build/src/$(notdir $f))
 
-ALL_OUTPUT_FILES = $(LIBMARIO_OUTPUT_FILES) $(DECOMP_OUTPUT_FILES)
+
+PRE_COMPILED_OUTPUT_FILES :=
+# PRE_COMPILED_OUTPUT_FILES := ./mariolib/sound_data.o
+
+ALL_OUTPUT_FILES = $(LIBMARIO_OUTPUT_FILES) $(DECOMP_OUTPUT_FILES) $(PRE_COMPILED_OUTPUT_FILES)
 
 all: libmario.o
 

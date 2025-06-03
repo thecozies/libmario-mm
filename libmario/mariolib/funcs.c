@@ -13,6 +13,7 @@
 #include "rendering_graph_node.h"
 #include "graph_node.h"
 #include "model_data.h"
+#include "sound_data.h"
 
 #include "anims.c"
 
