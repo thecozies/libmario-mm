@@ -15,6 +15,7 @@
 #include "model_data.h"
 #include "external.h"
 #include "data.h"
+#include "seq_ids.h"
 
 #include "anims.c"
 
@@ -940,6 +941,9 @@ EXPORT void ADDCALL init_libmario(FindFloorHandler_t *floorHandler, FindCeilHand
     if (!initSound) {
         audio_init();
         sound_init();
+        u8 reverbPreset = 0;
+        sound_reset(reverbPreset);
+        // play_music(SEQ_PLAYER_LEVEL, SEQUENCE_ARGS(4, SEQ_LEVEL_GRASS), 0);
         initSound = TRUE;
     }
     gFloorHandler = floorHandler;
