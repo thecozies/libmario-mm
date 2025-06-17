@@ -21,6 +21,7 @@ extern s32 sGameLoopTicked;
 extern s32 initSound;
 u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, s32 numSamplesPerFrame) {
     if (!initSound) {
+        *numAbiCmds = 0;
         return abiCmdStart;
     }
     
