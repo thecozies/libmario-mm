@@ -36,6 +36,120 @@
         /*0x18*/ OSContPad *controllerData;
     };
 
+    typedef f32 Mat4[4][4];
+
+    struct GraphNode {
+        /*0x00*/ s16 type; // structure type
+        /*0x02*/ s16 flags; // hi = drawing layer, lo = rendering modes
+        /*0x04*/ struct GraphNode *prev;
+        /*0x08*/ struct GraphNode *next;
+        /*0x0C*/ struct GraphNode *parent;
+        /*0x10*/ struct GraphNode *children;
+    };
+
+    struct AnimInfo {
+        /*0x00 0x38*/ s16 animID;
+        /*0x02 0x3A*/ s16 animYTrans;
+        /*0x04 0x3C*/ struct Animation *curAnim;
+        /*0x08 0x40*/ s16 animFrame;
+        /*0x0A 0x42*/ u16 animTimer;
+        /*0x0C 0x44*/ s32 animFrameAccelAssist;
+        /*0x10 0x48*/ s32 animAccel;
+    };
+
+    typedef uintptr_t BehaviorScript;
+
+    #ifdef PUPPYLIGHTS
+    #define MAX_OBJECT_FIELDS 0x51
+    #else
+    #define MAX_OBJECT_FIELDS 0x50
+    #endif
+
+    struct GraphNodeObject {
+        /*0x00*/ struct GraphNode node;
+        /*0x14*/ struct GraphNode *sharedChild;
+        /*0x18*/ s8 areaIndex;
+        /*0x19*/ s8 activeAreaIndex;
+        /*0x1A*/ Vec3s angle;
+        /*0x20*/ Vec3f pos;
+        /*0x2C*/ Vec3f scale;
+        /*0x38*/ struct AnimInfo animInfo;
+        /*0x4C*/ struct SpawnInfo *spawnInfo;
+        /*0x50*/ Mat4 *throwMatrix; // matrix ptr
+        /*0x54*/ Vec3f cameraToObject;
+    #ifdef OBJECTS_REJ
+        u16 ucode;
+    #endif
+    };
+
+    struct ObjectNode {
+        struct GraphNodeObject gfx;
+        struct ObjectNode *next;
+        struct ObjectNode *prev;
+    };
+
+    struct SM64Object {
+        /*0x000*/ struct ObjectNode header;
+        /*0x068*/ struct Object *parentObj;
+        /*0x06C*/ struct Object *prevObj;
+        /*0x070*/ u32 collidedObjInteractTypes;
+        /*0x074*/ s16 activeFlags;
+        /*0x076*/ s16 numCollidedObjs;
+        /*0x078*/ struct Object *collidedObjs[4];
+        /*0x088*/
+        union {
+            // Object fields. See object_fields.h.
+            u32 asU32[MAX_OBJECT_FIELDS];
+            s32 asS32[MAX_OBJECT_FIELDS];
+            s16 asS16[MAX_OBJECT_FIELDS][2];
+            f32 asF32[MAX_OBJECT_FIELDS];
+    #if !IS_64_BIT
+            s16 *asS16P[MAX_OBJECT_FIELDS];
+            s32 *asS32P[MAX_OBJECT_FIELDS];
+            struct Animation **asAnims[MAX_OBJECT_FIELDS];
+            struct Waypoint *asWaypoint[MAX_OBJECT_FIELDS];
+            struct ChainSegment *asChainSegment[MAX_OBJECT_FIELDS];
+            struct Object *asObject[MAX_OBJECT_FIELDS];
+            struct Surface *asSurface[MAX_OBJECT_FIELDS];
+            void *asVoidPtr[MAX_OBJECT_FIELDS];
+            const void *asConstVoidPtr[MAX_OBJECT_FIELDS];
+    #endif
+        } rawData;
+    #if IS_64_BIT
+        union {
+            s16 *asS16P[MAX_OBJECT_FIELDS];
+            s32 *asS32P[MAX_OBJECT_FIELDS];
+            struct Animation **asAnims[MAX_OBJECT_FIELDS];
+            struct Waypoint *asWaypoint[MAX_OBJECT_FIELDS];
+            struct ChainSegment *asChainSegment[MAX_OBJECT_FIELDS];
+            struct Object *asObject[MAX_OBJECT_FIELDS];
+            struct Surface *asSurface[MAX_OBJECT_FIELDS];
+            void *asVoidPtr[MAX_OBJECT_FIELDS];
+            const void *asConstVoidPtr[MAX_OBJECT_FIELDS];
+        } ptrData;
+    #endif
+        /*0x1C8*/ u32 unused1;
+        /*0x1CC*/ const BehaviorScript *curBhvCommand;
+        /*0x1D0*/ u32 bhvStackIndex;
+        /*0x1D4*/ uintptr_t bhvStack[8];
+        /*0x1F4*/ s16 bhvDelayTimer;
+        /*0x1F6*/ s16 respawnInfoType;
+        /*0x1F8*/ f32 hitboxRadius;
+        /*0x1FC*/ f32 hitboxHeight;
+        /*0x200*/ f32 hurtboxRadius;
+        /*0x204*/ f32 hurtboxHeight;
+        /*0x208*/ f32 hitboxDownOffset;
+        /*0x20C*/ const BehaviorScript *behavior;
+        /*0x210*/ u32 unused2;
+        /*0x214*/ struct Object *platform;
+        /*0x218*/ void *collisionData;
+        /*0x21C*/ Mat4 transform;
+        /*0x25C*/ void *respawnInfo;
+    #ifdef PUPPYLIGHTS
+        struct PuppyLight puppylight;
+    #endif
+    };
+
     struct MarioBodyState {
         /*0x00*/ u32 action;
         /*0x04*/ s8 capState; /// see MarioCapGSCId
@@ -89,7 +203,7 @@
         /*0x7C*/ void *heldObj;
         /*0x80*/ void *usedObj;
         /*0x84*/ void *riddenObj;
-        /*0x88*/ void *marioObj;
+        /*0x88*/ struct SM64Object *marioObj;
         /*0x8C*/ void *spawnInfo;
         /*0x90*/ void *area;
         /*0x94*/ void *statusForCamera;
