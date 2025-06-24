@@ -109,6 +109,11 @@ extern u8 gBankSetsData[];  // bank_sets.s
 ALSeqFile *get_audio_file_header(s32 poolIdx);
 
 
+void fake_completed_dma(OSMesgQueue *queue) {
+    osSendMesg(queue, (OSMesg) NULL, OS_MESG_BLOCK);
+}
+
+
 /**
  * Performs an immediate DMA copy
  */
@@ -119,6 +124,7 @@ void audio_dma_copy_immediate(uintptr_t devAddr, void *vAddr, size_t nbytes) {
     //              &gAudioDmaMesgQueue);
     // osRecvMesg(&gAudioDmaMesgQueue, NULL, OS_MESG_BLOCK);
     bcopy((void *) devAddr, vAddr, nbytes);
+
     eu_stubbed_printf_0("Romcopyend\n");
 }
 
@@ -151,6 +157,7 @@ void audio_dma_copy_async(uintptr_t devAddr, void *vAddr, size_t nbytes, OSMesgQ
     // osInvalDCache(vAddr, nbytes);
     // osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, devAddr, vAddr, nbytes, queue);
     bcopy((void *) devAddr, vAddr, nbytes);
+    fake_completed_dma(queue);
 #if PUPPYPRINT_DEBUG
     dmaAudioTime[perfIteration] += (osGetTime() - first);
 #endif
@@ -167,6 +174,7 @@ void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remai
     ssize_t transfer = MIN(*remaining, 0x1000);
     *remaining -= transfer;
     bcopy((void *) *devAddr, *vAddr, transfer);
+    fake_completed_dma(queue);
     // osInvalDCache(*vAddr, transfer);
     // osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, *devAddr, *vAddr, transfer, queue);
     *devAddr += transfer;
@@ -314,7 +322,7 @@ void *dma_sample_data(uintptr_t devAddr, u32 size, s32 arg2, u8 *dmaIndexRef) {
     dma->source = dmaDevAddr;
     dma->sizeUnused = transfer;
 #ifdef VERSION_US
-    osInvalDCache(dma->buffer, transfer);
+    // osInvalDCache(dma->buffer, transfer);
 #endif
 #if defined(VERSION_EU)
     osPiStartDma(&gCurrAudioFrameDmaIoMesgBufs[gCurrAudioFrameDmaCount++], OS_MESG_PRI_NORMAL,
@@ -328,7 +336,9 @@ void *dma_sample_data(uintptr_t devAddr, u32 size, s32 arg2, u8 *dmaIndexRef) {
     gCurrAudioFrameDmaCount++;
     // osPiStartDma(&gCurrAudioFrameDmaIoMesgBufs[gCurrAudioFrameDmaCount - 1], OS_MESG_PRI_NORMAL,
     //              OS_READ, dmaDevAddr, dma->buffer, transfer, &gCurrAudioFrameDmaQueue);
+
     bcopy((void *) dmaDevAddr, dma->buffer, transfer);
+
     *dmaIndexRef = dmaIndex;
 #if PUPPYPRINT_DEBUG
     dmaAudioTime[perfIteration] += (osGetTime() - first);

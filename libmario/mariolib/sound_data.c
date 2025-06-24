@@ -11,19 +11,19 @@
 
 #ifdef EMBED_SM64_RSP_AUDIO_C
 // in order to embed the data, these need to be extracted from the us sound build process
-u8 gSoundDataADSR[] = {
+__attribute__((aligned(16))) u8 gSoundDataADSR[] = {
     #include "sounds/sound_data.ctl.inc.c"
 };
 
-u8 gSoundDataRaw[] = {
+__attribute__((aligned(16))) u8 gSoundDataRaw[] = {
     #include "sounds/sound_data.tbl.inc.c"
 };
 
-u8 gMusicData[] = {
+__attribute__((aligned(16))) u8 gMusicData[] = {
     #include "sounds/sequences.bin.inc.c"
 };
 
-u8 gBankSetsData[] = {
+__attribute__((aligned(16))) u8 gBankSetsData[] = {
     #include "sounds/bank_sets.inc.c"
 };
 
@@ -44,4 +44,4 @@ u8 gBankSetsData[BANK_SETS_SIZE] = { 0 };
 #endif
 
 
-u8 gAudioHeap[DOUBLE_SIZE_ON_64_BIT(AUDIO_HEAP_SIZE)] = { 0 };
+__attribute__((aligned(16))) u8 gAudioHeap[DOUBLE_SIZE_ON_64_BIT(AUDIO_HEAP_SIZE)] = { 0 };

@@ -16,6 +16,7 @@
 #include "model_data.h"
 #include "external.h"
 #include "data.h"
+#include "load.h"
 
 extern s32 sGameLoopTicked;
 extern s32 initSound;
@@ -34,5 +35,6 @@ u64* synthesis_execute_wrap(u64* abiCmdStart, s32* numAbiCmds, s16* aiBufStart, 
     u64* curCmd = synthesis_execute((u64 *)abiCmdStart, numAbiCmds, aiBufStart, numSamplesPerFrame);
 
     gAudioRandom = ((gAudioRandom + gAudioFrameCount) * gAudioFrameCount);
+    decrease_sample_dma_ttls();
     return curCmd;
 }
