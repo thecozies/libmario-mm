@@ -175,6 +175,7 @@ void step_libmario(OSContPad *controllerData, s32 updateAnims);
 Gfx *render_mario(Gfx **opa, Gfx **xlu, f32 *scale, u32 transform_id);
 extern struct MarioState *gMarioState;
 u32 getMarioAction(void);
+u32 set_mario_action(struct MarioState *m, u32 action, u32 actionArg);
 void setMarioRelativeCamYaw(s16 yaw);
 void getMarioVelocity(f32 vel[3]);
 void setMarioVelocity(f32 pos[3]);
