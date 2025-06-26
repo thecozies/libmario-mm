@@ -1003,6 +1003,9 @@ void reset_mario_state(u32 action) {
     gMarioState->vel[2] = 0.0f;
 }
 
+s16 get_mario_anim_frame() {
+    return gMarioState->marioObj->header.gfx.animInfo.animFrame;
+}
 
 void setMarioRelativeCamYaw(s16 yaw) {
     gMarioState->area->camera->yaw = yaw;

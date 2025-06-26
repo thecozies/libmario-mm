@@ -190,6 +190,7 @@ void setMarioVelocity(f32 pos[3]);
 void getMarioRotation(s16 rot[3]);
 void setMarioRotation(s16 rot[3]);
 void reset_mario_state(u32 action);
+s16 get_mario_anim_frame();
 
 void set_mario_interact_object(InteractObjectType interactObjectType, f32 pos[3], s16 rot[3], f32 radius, f32 height);
 
