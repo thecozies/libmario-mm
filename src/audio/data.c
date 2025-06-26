@@ -941,7 +941,7 @@ s32 gRefreshRate;
 ALIGNED8 s16 *gAiBuffers[NUMAIBUFFERS];
 s16 gAiBufferLengths[NUMAIBUFFERS];
 
-u32 gAudioRandom;
+u32 gAudioRandom = 0;
 
 #if defined(VERSION_EU) || defined(VERSION_SH)
 s32 gAudioErrorFlags;

@@ -92,10 +92,10 @@ enum Codecs {
 #define eu_stubbed_printf_3(msg, a, b, c) stubbed_printf(msg, a, b, c)
 //#endif
 #else
-#define eu_stubbed_printf_0(msg)
-#define eu_stubbed_printf_1(msg, a)
-#define eu_stubbed_printf_2(msg, a, b)
-#define eu_stubbed_printf_3(msg, a, b, c)
+#define eu_stubbed_printf_0(msg) recomp_printf(msg)
+#define eu_stubbed_printf_1(msg, a) recomp_printf(msg, a)
+#define eu_stubbed_printf_2(msg, a, b) recomp_printf(msg, a, b)
+#define eu_stubbed_printf_3(msg, a, b, c) recomp_printf(msg, a, b, c)
 #endif
 
 struct NotePool;

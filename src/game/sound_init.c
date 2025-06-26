@@ -184,16 +184,16 @@ void play_menu_sounds(s16 soundMenuFlags) {
  * Called from threads: thread5_game_loop
  */
 void play_painting_eject_sound(void) {
-    if (gRipplingPainting != NULL && gRipplingPainting->state == PAINTING_ENTERED) {
-        // ripple when Mario enters painting
-        if (!sPaintingEjectSoundPlayed) {
-            play_sound(SOUND_GENERAL_PAINTING_EJECT,
-                       gMarioStates[0].marioObj->header.gfx.cameraToObject);
-        }
-        sPaintingEjectSoundPlayed = TRUE;
-    } else {
-        sPaintingEjectSoundPlayed = FALSE;
-    }
+    // if (gRipplingPainting != NULL && gRipplingPainting->state == PAINTING_ENTERED) {
+    //     // ripple when Mario enters painting
+    //     if (!sPaintingEjectSoundPlayed) {
+    //         play_sound(SOUND_GENERAL_PAINTING_EJECT,
+    //                    gMarioStates[0].marioObj->header.gfx.cameraToObject);
+    //     }
+    //     sPaintingEjectSoundPlayed = TRUE;
+    // } else {
+    //     sPaintingEjectSoundPlayed = FALSE;
+    // }
 }
 
 /**
@@ -338,48 +338,48 @@ void audio_game_loop_tick(void) {
  * Sound processing thread. Runs at 60 FPS.
  */
 void thread4_sound(UNUSED void *arg) {
-    audio_init();
-    sound_init();
+//     audio_init();
+//     sound_init();
 
-#if PUPPYPRINT_DEBUG
-    OSTime lastTime;
-#endif
+// #if PUPPYPRINT_DEBUG
+//     OSTime lastTime;
+// #endif
 
-    osCreateMesgQueue(&sSoundMesgQueue, sSoundMesgBuf, ARRAY_COUNT(sSoundMesgBuf));
-    set_vblank_handler(1, &sSoundVblankHandler, &sSoundMesgQueue, (OSMesg) 512);
+//     osCreateMesgQueue(&sSoundMesgQueue, sSoundMesgBuf, ARRAY_COUNT(sSoundMesgBuf));
+//     set_vblank_handler(1, &sSoundVblankHandler, &sSoundMesgQueue, (OSMesg) 512);
 
-    while (TRUE) {
-        OSMesg msg;
+//     while (TRUE) {
+//         OSMesg msg;
 
-        osRecvMesg(&sSoundMesgQueue, &msg, OS_MESG_BLOCK);
-#if PUPPYPRINT_DEBUG
-        while (TRUE) {
-            lastTime = osGetTime();
-            dmaAudioTime[perfIteration] = 0;
-#endif
-            if (gResetTimer < 25) {
-                struct SPTask *spTask;
-                spTask = create_next_audio_frame_task();
-                if (spTask != NULL) {
-                    dispatch_audio_sptask(spTask);
-                }
-#if PUPPYPRINT_DEBUG
-                profiler_update(audioTime, lastTime);
-                audioTime[perfIteration] -= dmaAudioTime[perfIteration];
-                if (benchmarkLoop > 0 && benchOption == 1) {
-                    benchmarkLoop--;
-                    benchMark[benchmarkLoop] = osGetTime() - lastTime;
-                    if (benchmarkLoop == 0) {
-                        puppyprint_profiler_finished();
-                        break;
-                    }
-                } else {
-                    break;
-                }
-#endif
-            }
-#if PUPPYPRINT_DEBUG
-        }
-#endif
-    }
+//         osRecvMesg(&sSoundMesgQueue, &msg, OS_MESG_BLOCK);
+// #if PUPPYPRINT_DEBUG
+//         while (TRUE) {
+//             lastTime = osGetTime();
+//             dmaAudioTime[perfIteration] = 0;
+// #endif
+//             if (gResetTimer < 25) {
+//                 struct SPTask *spTask;
+//                 spTask = create_next_audio_frame_task();
+//                 if (spTask != NULL) {
+//                     dispatch_audio_sptask(spTask);
+//                 }
+// #if PUPPYPRINT_DEBUG
+//                 profiler_update(audioTime, lastTime);
+//                 audioTime[perfIteration] -= dmaAudioTime[perfIteration];
+//                 if (benchmarkLoop > 0 && benchOption == 1) {
+//                     benchmarkLoop--;
+//                     benchMark[benchmarkLoop] = osGetTime() - lastTime;
+//                     if (benchmarkLoop == 0) {
+//                         puppyprint_profiler_finished();
+//                         break;
+//                     }
+//                 } else {
+//                     break;
+//                 }
+// #endif
+//             }
+// #if PUPPYPRINT_DEBUG
+//         }
+// #endif
+//     }
 }
