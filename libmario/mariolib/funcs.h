@@ -89,7 +89,7 @@
         /*0x7C*/ void *heldObj;
         /*0x80*/ void *usedObj;
         /*0x84*/ void *riddenObj;
-        /*0x88*/ struct SM64Object *marioObj;
+        /*0x88*/ void *marioObj;
         /*0x8C*/ void *spawnInfo;
         /*0x90*/ void *area;
         /*0x94*/ void *statusForCamera;
